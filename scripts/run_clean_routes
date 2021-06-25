@@ -1,0 +1,5 @@
+#!/bin/bash
+sudo iptables -t nat -D POSTROUTING -m mark --mark 1 -j SNAT --to-source 10.0.0.1 2>/dev/null
+sudo iptables -t mangle -D OUTPUT -j MARK --set-mark 1 2>/dev/null
+sudo ip route del table 1 default via 10.0.0.1 2>/dev/null
+sudo ip rule del fwmark 1 table 1 2>/dev/null

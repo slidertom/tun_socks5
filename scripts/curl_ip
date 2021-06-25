@@ -1,0 +1,4 @@
+#!/bin/bash
+printf "curl ipinfo.io/ip\n"
+curl ipinfo.io/ip
+printf "\n"
