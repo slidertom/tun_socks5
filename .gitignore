@@ -1,0 +1,5 @@
+/bin
+*.o
+/src/*.layout
+/src/*.depend
+/src/bin/Debug
