@@ -32,34 +32,36 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="lib/private.h" />
+		<Unit filename="lib/tuntap-export.h" />
+		<Unit filename="lib/tuntap-unix-linux.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lib/tuntap.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lib/tuntap.h" />
+		<Unit filename="lib/tuntap_log.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="main.cpp" />
-		<Unit filename="src/lib/private.h" />
-		<Unit filename="src/lib/tuntap-export.h" />
-		<Unit filename="src/lib/tuntap-unix-linux.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="src/lib/tuntap.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="src/lib/tuntap.h" />
-		<Unit filename="src/lib/tuntap_log.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="src/tools/Connection.h" />
-		<Unit filename="src/tools/IPv4.cpp" />
-		<Unit filename="src/tools/IPv4.h" />
-		<Unit filename="src/tools/Traffic2Tun.cpp" />
-		<Unit filename="src/tools/Traffic2Tun.h" />
-		<Unit filename="src/tools/Tun.cpp" />
-		<Unit filename="src/tools/Tun.h" />
-		<Unit filename="src/tools/console_colors" />
-		<Unit filename="src/tools/console_colors.h" />
-		<Unit filename="src/tools/sock_utils.h" />
-		<Unit filename="src/tools/socks5_defs.h" />
-		<Unit filename="src/tools/socks5_tcp.cpp" />
-		<Unit filename="src/tools/socks5_tcp.h" />
-		<Unit filename="src/tools/socks5_udp.cpp" />
-		<Unit filename="src/tools/socks5_udp.h" />
+		<Unit filename="tools/Connection.h" />
+		<Unit filename="tools/IPv4.cpp" />
+		<Unit filename="tools/IPv4.h" />
+		<Unit filename="tools/PollMgr.cpp" />
+		<Unit filename="tools/PollMgr.h" />
+		<Unit filename="tools/Traffic2Tun.cpp" />
+		<Unit filename="tools/Traffic2Tun.h" />
+		<Unit filename="tools/Tun.cpp" />
+		<Unit filename="tools/Tun.h" />
+		<Unit filename="tools/console_colors" />
+		<Unit filename="tools/console_colors.h" />
+		<Unit filename="tools/sock_utils.h" />
+		<Unit filename="tools/socks5_defs.h" />
+		<Unit filename="tools/socks5_tcp.cpp" />
+		<Unit filename="tools/socks5_tcp.h" />
+		<Unit filename="tools/socks5_udp.cpp" />
+		<Unit filename="tools/socks5_udp.h" />
 		<Extensions>
 			<code_completion />
 			<debugger />
