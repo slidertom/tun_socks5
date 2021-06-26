@@ -4,6 +4,8 @@
 #include "socks5_defs.h"
 #include "IPv4.h"
 
+#include <arpa/inet.h>
+
 #include <vector>
 #include <stdio.h>
 
@@ -17,9 +19,16 @@ int socks5_tcp::client_greeting_no_auth(int fdSoc) noexcept
 	};
 
 	const int write_ret = sock_utils::write_data(fdSoc, client_greeting_msg.data(), client_greeting_msg.size(), 0);
+	if (write_ret < 0) {
+        return -1;
+	}
 
 	std::vector<char> server_choice(2);
 	const int read_ret = sock_utils::read_data(fdSoc, server_choice.data(), server_choice.size(), 0);
+	if (read_ret < 0) {
+        return -1;
+	}
+
 	if (server_choice.at(0) == 0x05 &&
         server_choice.at(1) == 0x00) {
 		return 0;
@@ -57,12 +66,19 @@ static std::pair<struct in_addr, uint16_t> socks5_udp_connection_request(int fdS
 	client_connection_request.push_back(static_cast<char>(destination_port>>8));
 	client_connection_request.push_back(static_cast<char>(destination_port));
 
-	int write_ret = sock_utils::write_data(fdSock, client_connection_request.data(), client_connection_request.size(), 0);
+	const int write_ret = sock_utils::write_data(fdSock, client_connection_request.data(), client_connection_request.size(), 0);
+	if (write_ret < 0) {
+        struct in_addr addr;
+        return std::make_pair(addr, 0);
+	}
 
 	constexpr std::size_t reply_bytes = 1 + 1 + 1 + 1 + (1 + 4) + 2;
 	std::vector<char> server_response(reply_bytes);
 	const int read_ret = sock_utils::read_data(fdSock, server_response.data(), server_response.size(), 0);
-    read_ret;
+    if (read_ret < 0) {
+        struct in_addr addr;
+        return std::make_pair(addr, 0);
+    }
 
 	if (server_response.at(0) == 0x05 &&
         server_response.at(1) == 0x00) {
@@ -111,7 +127,7 @@ int socks5_tcp::tcp_client_connection_request(int fdSoc,
 {
 	// [VERSION, SOCKS_CMD, RESV(0x00), (SOCKS5 Addr Type)[TYPE, ADDR], DST_PORT]
 	char ipv4_buffer[4];
-	int inet_ret = inet_pton(AF_INET, destination_addr.c_str(), ipv4_buffer);
+	::inet_pton(AF_INET, destination_addr.c_str(), ipv4_buffer);
 
 	std::vector<char> client_connection_request = {
 		static_cast<char>(ESOCKS5_DEFAULTS::VERSION),
@@ -126,11 +142,17 @@ int socks5_tcp::tcp_client_connection_request(int fdSoc,
 	client_connection_request.push_back(static_cast<char>(destination_port>>8));
 	client_connection_request.push_back(static_cast<char>(destination_port));
 
-	int write_ret = sock_utils::write_data(fdSoc, client_connection_request.data(), client_connection_request.size(), 0);
+	const int write_ret = sock_utils::write_data(fdSoc, client_connection_request.data(), client_connection_request.size(), 0);
+	if (write_ret < 0) {
+        return -1;
+	}
 
 	constexpr std::size_t reply_bytes = 1 + 1 + 1 + 1 + (1 + 4) + 2;
 	std::vector<char> server_responce(reply_bytes);
-	int read_ret = sock_utils::read_data(fdSoc, server_responce.data(), server_responce.size(), 0);
+	const int read_ret = sock_utils::read_data(fdSoc, server_responce.data(), server_responce.size(), 0);
+	if (read_ret < 0) {
+        return -1;
+	}
 
 	if (server_responce.at(0) == 0x05 && server_responce.at(1) == 0x00) {
 		return 0;

@@ -1,9 +1,13 @@
 #include "sock_utils.h"
 
+#include "console_colors.h"
+
 #include <sys/socket.h>
 #include <netdb.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <arpa/inet.h>
+#include <netinet/tcp.h>
 
 void sock_utils::get_socket_info(int fdSoc, struct sockaddr_in &addr) noexcept
 {
@@ -18,7 +22,7 @@ void sock_utils::print_socket_info(int fdSoc) noexcept
     sock_utils::get_socket_info(fdSoc, addr);
 
     char sock_ip[16];
-    inet_ntop(AF_INET, &addr.sin_addr, sock_ip, sizeof(sock_ip));
+    ::inet_ntop(AF_INET, &addr.sin_addr, sock_ip, sizeof(sock_ip));
     uint16_t scPort = ntohs(addr.sin_port);
     std::cout << "fd: " << fdSoc << "\t" << sock_ip << ":" << scPort << std::endl;
 }
@@ -47,13 +51,13 @@ int sock_utils::create_udp_socket(struct in_addr *inp, uint16_t dport) noexcept
 
     struct sockaddr_in addr;
     addr.sin_addr   = *inp;
-    addr.sin_port   = htons(dport);
+    addr.sin_port   = ::htons(dport);
     addr.sin_family = AF_INET;
     ::memset(addr.sin_zero, 0, 8);
     const int connect_ret = ::connect(sock_fd, reinterpret_cast<sockaddr *>(&addr), sizeof(sockaddr));
 
     if (connect_ret == -1) {
-        std::cout << "UDP Socket connect has failed." << std::endl;
+        std::cout << RED << "UDP Socket connect has failed." << RESET << std::endl; // TODO: log function with levels
         return -1;
     }
 
@@ -62,19 +66,34 @@ int sock_utils::create_udp_socket(struct in_addr *inp, uint16_t dport) noexcept
 
 int sock_utils::read_data(int fdSoc, char *buffer, size_t buff_read_len, int recv_flag) noexcept
 {
-    const int recv_ret = recv(fdSoc, buffer, buff_read_len, recv_flag);
+    const int recv_ret = ::recv(fdSoc, buffer, buff_read_len, recv_flag);
     if (recv_ret < 0 ) {
-        std::perror("sock_utils::read_data failed.");
-        exit(EXIT_FAILURE);
+        std::cout << RED << "sock_utils::read_data failed." << RESET << std::endl; // TODO: log function with levels
+        return recv_ret;
     }
     return recv_ret;
 }
 
-int sock_utils::write_data(int fdSoc, const char *buffer, size_t buff_write_len, int send_flags) noexcept
+size_t sock_utils::write_data(int fdSoc, const char *buffer, size_t buff_write_len, int send_flags) noexcept
 {
-    // TODO: send while loop ?
-    const int send_ret = send(fdSoc, buffer, buff_write_len, send_flags);
-    return send_ret;
+    // https://beej.us/guide/bgnet/html/#sendall
+    // Remember back in the section about send(), above,
+    // when I said that send() might not send all the bytes you asked it to?
+    // That is, you want it to send 512 bytes, but it returns 412. What happened to the remaining 100 bytes?
+
+    size_t total = 0;        // how many bytes we've sent
+    size_t bytesleft = buff_write_len; // how many we have left to send
+    int n;
+    while (total < buff_write_len) {
+        n = send(fdSoc, buffer + total, bytesleft, 0);
+        if (n == -1) {
+            break;
+        }
+        total     += n;
+        bytesleft -= n;
+    }
+
+    return n == -1 ? -1 : total; // return -1 on failure, number actually sent bytes on success
 }
 
 int sock_utils::close_connection(int fdSoc) noexcept
@@ -88,14 +107,14 @@ int sock_utils::create_tcp_socket_client(const char *name, std::uint16_t port) n
     hostent *hoste;
     sockaddr_in addr;
     if ((hoste = ::gethostbyname(name)) == nullptr) {
-        herror("gethostbyname()");
-        exit(EXIT_FAILURE);
+        std::cout << RED << "gethostbyname() failed." << RESET << std::endl;
+        return -1;
     }
                                  // O_NONBLOCK
     const int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (sock_fd < 0 ) {
-        std::perror("socket create_tcp_socket_client failed.");
-        exit(EXIT_FAILURE);
+        std::cout << RED << "socket create_tcp_socket_client failed." << RESET << std::endl;
+        return -2;
     }
 
     addr.sin_addr = *(reinterpret_cast<in_addr*>(hoste->h_addr));
@@ -104,8 +123,8 @@ int sock_utils::create_tcp_socket_client(const char *name, std::uint16_t port) n
     ::memset(addr.sin_zero, 0, 8);
     const int connect_ret = connect(sock_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr));
     if (connect_ret < 0 ) {
-        std::perror("connect create_tcp_socket_client failed.");
-        exit(EXIT_FAILURE);
+        std::cout << RED << "connect create_tcp_socket_client failed." << RESET << std::endl;
+        return -3;
     }
 
     // https://www.ibm.com/support/pages/ibm-aix-tcp-keepalive-probes

@@ -15,10 +15,10 @@ public:
     virtual void HandleEvent() override final;
 
 private:
-    int m_fdSoc;
-    Tun *m_pTun;
-    uint32_t m_tun_ip;
-    Ipv4ConnMap *m_pUdpConnMap;
+    Tun *m_pTun {nullptr};
+    int m_fdSoc {-1};
+    uint32_t m_tun_ip {0};
+    Ipv4ConnMap *m_pUdpConnMap {nullptr};
 
 private:
     SocketUdpConnection(SocketUdpConnection &&x) = delete;

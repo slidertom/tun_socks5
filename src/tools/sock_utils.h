@@ -3,8 +3,6 @@
 #include <bits/stdc++.h>
 #include <stdio.h>
 #include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
 
 namespace sock_utils
 {
@@ -18,7 +16,7 @@ namespace sock_utils
 
     int read_data(int fdSoc, char *buffer, size_t buff_read_len, int recv_flag) noexcept;
 
-    int write_data(int fdSoc, const char *buffer, size_t buff_write_len, int send_flags) noexcept;
+    size_t write_data(int fdSoc, const char *buffer, size_t buff_write_len, int send_flags) noexcept;
 
     int close_connection(int fdSoc) noexcept;
 

@@ -173,7 +173,7 @@ bool sendData(int fd, void *data, int len)
 
 int recvData(int fd, void *data, int len)
 {
-    char *ptr = (char *) data;
+    char *ptr = (char *)data;
     int total = 0;
 
     while (len > 0)

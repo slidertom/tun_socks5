@@ -55,8 +55,7 @@ static void SendSockData(int fdSoc)
 
 	constexpr std::size_t reply_buff_size = 2048;
 	char read_buffer_reply[reply_buff_size];
-	int nRet = sock_utils::read_data(fdSoc, read_buffer_reply, reply_buff_size, 0);
-	nRet;
+	sock_utils::read_data(fdSoc, read_buffer_reply, reply_buff_size, 0);
 	std::cout << "IP addrees:"     << std::endl;
 	std::cout << read_buffer_reply << std::endl;
 }
@@ -83,14 +82,7 @@ static void SendSockTest(int fdSoc)
     if ( nRet == -1) {
         std::cout << "client_connection_request error" << std::endl;
     }
-    /*
-    // accepted only one time by server
-    client_greeting_no_auth(fdSoc);
-    nRet = SOCKS5_Common::client_connection_request(fdSoc, sDstAddress.c_str(), 80); // ?
-    if ( nRet == -1) {
-        std::cout << "client_connection_request error" << std::endl;
-    }
-    */
+
     SendSockData(fdSoc);
 }
 
@@ -127,9 +119,6 @@ int main()
     const char *sSocs5Server = "192.168.19.142";
     const uint16_t nSocs5Port = 1082;
 
-    constexpr int32_t c_nBufferSize = 2000; // for tun/tap must be >= 1500
-    char buffer[c_nBufferSize]; // mtu?
-
     Tun tun;
     const int fdTun = tun.Init("tun2sc5", "10.0.0.1");
     if (fdTun < 0) {
@@ -144,7 +133,7 @@ int main()
 
 //    {  // Direct socket server test
         const int fdSoc = sock_utils::create_tcp_socket_client(sSocs5Server, nSocs5Port);
-        if (fdSoc == 0) {
+        if (fdSoc <= 0) {
             std::cout << "Socket start has failed: " << fdSoc << std::endl;
             return 0;
         }
