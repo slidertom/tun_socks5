@@ -109,15 +109,15 @@ static void set_signal(int signo, void (*handler)(int))
 #include "tools/Connection.h"
 
 
-class SocketConnection : public Connection
+class SocketUdpConnection : public Connection
 {
 public:
-    SocketConnection(Tun *pTun, int fdSoc, Ipv4ConnMap *pUdpConnMap)
+    SocketUdpConnection(Tun *pTun, int fdSoc, Ipv4ConnMap *pUdpConnMap)
         : m_pTun(pTun), m_fdSoc(fdSoc), m_pUdpConnMap(pUdpConnMap)
     {
          ::inet_pton(AF_INET, "10.0.0.1", &m_tun_ip);
     }
-    virtual ~SocketConnection() { }
+    virtual ~SocketUdpConnection() { }
 
 public:
     virtual void HandleEvent() override
@@ -141,10 +141,10 @@ private:
     Ipv4ConnMap *m_pUdpConnMap;
 
 private:
-    SocketConnection(SocketConnection &&x) = delete;
-    SocketConnection(const SocketConnection &x) = delete;
-    SocketConnection &operator=(SocketConnection &&x) = delete;
-    SocketConnection &operator=(const SocketConnection &x) = delete;
+    SocketUdpConnection(SocketUdpConnection &&x) = delete;
+    SocketUdpConnection(const SocketUdpConnection &x) = delete;
+    SocketUdpConnection &operator=(SocketUdpConnection &&x) = delete;
+    SocketUdpConnection &operator=(const SocketUdpConnection &x) = delete;
 };
 
 class TunConnection : public Connection
@@ -175,7 +175,7 @@ public:
         sock_utils::print_socket_info(m_fdSocUdp);
         std::cout << RESET;
 
-        m_pPollMgr->Add(m_fdSocUdp, new SocketConnection(m_pTun, m_fdSocUdp, m_pUdpConnMap));
+        m_pPollMgr->Add(m_fdSocUdp, new SocketUdpConnection(m_pTun, m_fdSocUdp, m_pUdpConnMap));
     }
 
     virtual ~TunConnection()
