@@ -126,7 +126,7 @@ public:
         if ( nRead > 0 ) {
             //m_pTun->Write(m_buffer, nRead);
             const int fdTun = m_pTun->GetFd();
-            ::socks5_send_udp_packet_to_tun(fdTun, (unsigned char *)m_buffer, nRead,
+            socks5_udp::send_packet_to_tun(fdTun, (unsigned char *)m_buffer, nRead,
                                             m_tun_ip, *m_pUdpConnMap);
         }
         else {
@@ -203,7 +203,7 @@ public:
             std::cout << "TUN => SOC ";
             ipv4::print_udp_packet((unsigned char *)m_buffer, nRead);
             ::map_udp_packet(m_buffer, nRead, *m_pUdpConnMap);
-            ::socks5_send_udp_packet(m_fdSocUdp, (unsigned char *)m_buffer, nRead);
+            socks5_udp::send_packet_to_socket(m_fdSocUdp, (unsigned char *)m_buffer, nRead);
         }
         else {
             //sendData(fdSoc, m_buffer, nRead);

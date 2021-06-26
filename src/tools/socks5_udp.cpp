@@ -34,7 +34,7 @@
           o  DST.PORT       desired destination port
           o  DATA           user data
 */
-bool socks5_send_udp_packet(int fdSoc, unsigned char *buffer, size_t size) noexcept
+bool socks5_udp::send_packet_to_socket(int fdSoc, unsigned char *buffer, size_t size) noexcept
 {
     struct iphdr *iph = (struct iphdr *)buffer;
     unsigned short iphdrlen = (unsigned short)iph->ihl*4;
@@ -277,36 +277,10 @@ u16 ipv4_checksum(void *ip_header, size_t ip_header_bytes)
 		ip_checksum_partial(ip_header, ip_header_bytes, 0));
 }
 
-//badvpn
-static uint16_t badvpn_read_be16 (const char *c_ptr)
-{
-    const uint8_t *ptr = (const uint8_t *)c_ptr;
-    return ((uint16_t)ptr[0] << 8) | ((uint16_t)ptr[1] << 0);
-}
 
-static uint16_t ipv4_checksum(const struct iphdr *header, const char *extra, uint16_t extra_len)
-{
-    uint32_t t = 0;
-
-    for (uint16_t i = 0; i < sizeof(*header) / 2; i++) {
-        t += badvpn_read_be16((const char *)header + 2 * i);
-    }
-
-    for (uint16_t i = 0; i < extra_len / 2; i++) {
-        t += badvpn_read_be16((const char *)extra + 2 * i);
-    }
-
-    while (t >> 16) {
-        t = (t & 0xFFFF) + (t >> 16);
-    }
-
-    return htons(~t);
-}
-
-
-bool socks5_send_udp_packet_to_tun(int fdTun, unsigned char *buffer, size_t size,
-                                   uint32_t tun_ip,
-                                   const Ipv4ConnMap &map_dst_to_connn) noexcept
+bool socks5_udp::send_udp_packet_to_tun(int fdTun, unsigned char *buffer, size_t size,
+                                               uint32_t tun_ip,
+                                               const Ipv4ConnMap &map_dst_to_connn) noexcept
 {
     // this is just for the learning purposes do use boost asio for production
     // https://www.ridgesolutions.ie/index.php/2019/06/06/boost-asio-simple-udp-send-packet-example/
@@ -375,7 +349,7 @@ bool socks5_send_udp_packet_to_tun(int fdTun, unsigned char *buffer, size_t size
     // The checksum should be calculated over the entire header with the checksum
     // field set to 0, so that's what we do
     ip.check    = 0;
-    unsigned short payload = payload_size + udplen;
+    //unsigned short payload = payload_size + udplen;
     //compute_tcp_checksum(&ip, &payload);
     ip.check    = ::inet_csum(&ip, sizeof(struct iphdr));
 
