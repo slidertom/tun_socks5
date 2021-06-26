@@ -83,29 +83,6 @@ bool socks5_udp::send_packet_to_socket(int fdSoc, unsigned char *buffer, size_t 
     return true;
 }
 
-unsigned short csum(unsigned short *ptr,int nbytes)
-{
-	register long sum;
-	unsigned short oddbyte;
-	register short answer;
-
-	sum=0;
-	while(nbytes>1) {
-		sum+=*ptr++;
-		nbytes-=2;
-	}
-	if(nbytes==1) {
-		oddbyte=0;
-		*((u_char*)&oddbyte)=*(u_char*)ptr;
-		sum+=oddbyte;
-	}
-
-	sum = (sum>>16)+(sum & 0xffff);
-	sum = sum + (sum>>16);
-	answer=(short)~sum;
-
-	return(answer);
-}
 
 /* function: ip_checksum_add
  * adds data to a checksum. only known to work on little-endian hosts
@@ -278,9 +255,10 @@ u16 ipv4_checksum(void *ip_header, size_t ip_header_bytes)
 }
 
 
-bool socks5_udp::send_udp_packet_to_tun(int fdTun, unsigned char *buffer, size_t size,
-                                               uint32_t tun_ip,
-                                               const Ipv4ConnMap &map_dst_to_connn) noexcept
+bool socks5_udp::send_packet_to_tun(int fdTun,
+                                    unsigned char *buffer, size_t size,
+                                    uint32_t tun_ip,
+                                    const Ipv4ConnMap &map_dst_to_connn) noexcept
 {
     // this is just for the learning purposes do use boost asio for production
     // https://www.ridgesolutions.ie/index.php/2019/06/06/boost-asio-simple-udp-send-packet-example/
