@@ -1,5 +1,7 @@
 #pragma once
 
+#include "vector"
+
 class Connection;
 
 // https://www.ulduzsoft.com/2014/01/select-poll-epoll-practical-difference-for-system-architects/
@@ -17,6 +19,7 @@ public:
 // Attributes
 private:
     int m_fdPoll;
+    std::vector<Connection *> m_conns; // just manage by our self
 
 private:
     PollMgr(PollMgr &&x) = delete;

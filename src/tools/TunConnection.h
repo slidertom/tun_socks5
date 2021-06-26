@@ -22,8 +22,10 @@ public:
 private:
     Tun *m_pTun;
 
-    int m_fdSoc    {0}; // UDP associate socket
-    int m_fdSocUdp {0};
+    int m_fdSoc    {0}; // UDP associated socket
+    int m_fdSocUdp {0}; // TCP authorization socket
+
+    // TODO: tcp sockets map by destination
 
     PollMgr *m_pPollMgr;
     Ipv4ConnMap *m_pUdpConnMap;

@@ -15,6 +15,11 @@ PollMgr::PollMgr()
 
 PollMgr::~PollMgr()
 {
+    for (Connection *pConn : m_conns) {
+        delete pConn;
+    }
+
+
     if (m_fdPoll >= 0) {
         ::close(m_fdPoll);
     }
@@ -47,6 +52,10 @@ bool PollMgr::Add(int fd, Connection *pConn) noexcept
         return false;
     }
 
+    if (pConn) {
+        m_conns.push_back(pConn);
+    }
+
     return true;
 }
 
@@ -61,6 +70,5 @@ void PollMgr::Wait() const noexcept
             Connection *pConn = (Connection *)events[i1].data.ptr;
             pConn->HandleEvent();
         }
-
     }
 }
