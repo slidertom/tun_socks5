@@ -10,6 +10,7 @@
 #include <netinet/ip.h>    //Provides declarations for ip header
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #include "sock_utils.h"
 #include "socks5_tcp.h"
@@ -84,28 +85,7 @@ bool socks5_udp::send_packet_to_socket(int fdSoc, unsigned char *buffer, size_t 
 }
 
 
-/* function: ip_checksum_add
- * adds data to a checksum. only known to work on little-endian hosts
- * current - the current checksum (or 0 to start a new checksum)
- *   data        - the data to add to the checksum
- *   len         - length of data
- */
-uint32_t ip_checksum_add(uint32_t current, const void *data, int len) {
-    uint32_t checksum = current;
-    int left = len;
-    const uint16_t *data_16 = (const uint16_t *)data;
-    while (left > 1) {
-        checksum += *data_16;
-        data_16++;
-        left -= 2;
-    }
-    if (left) {
-        checksum += *(uint8_t*)data_16;
-    }
-    return checksum;
-}
-
-uint16_t inet_csum(const void *buf, size_t hdr_len)
+static uint16_t inet_csum(const void *buf, size_t hdr_len)
 {
     unsigned long sum = 0;
     const uint16_t *ip1;
@@ -123,7 +103,6 @@ uint16_t inet_csum(const void *buf, size_t hdr_len)
 
     return(~sum);
 }
-
 
 bool socks5_udp::send_packet_to_tun(int fdTun,
                                     unsigned char *buffer, size_t size,

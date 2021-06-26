@@ -50,7 +50,7 @@
 static void SendSockData(int fdSoc)
 {
 	std::string sample_request = "GET /ip HTTP/1.1\r\nHost: ipinfo.io\r\nUser-Agent: curl/7.65.2\r\n\r\n";
-	//pSocket->write_proxy(sample_request.size(), sample_request.c_str());
+
 	sock_utils::write_data(fdSoc, sample_request.c_str(), sample_request.size(), 0);
 
 	constexpr std::size_t reply_buff_size = 2048;
@@ -107,8 +107,6 @@ static void set_signal(int signo, void (*handler)(int))
     sa.sa_handler = (void (*)(int))handler;
     sigaction(signo, &sa, NULL);
 }
-
-
 
 int main()
 {

@@ -50,6 +50,7 @@
 		<Unit filename="tools/IPv4.h" />
 		<Unit filename="tools/PollMgr.cpp" />
 		<Unit filename="tools/PollMgr.h" />
+		<Unit filename="tools/SocketUdpConnection.cpp" />
 		<Unit filename="tools/SocketUdpConnection.h" />
 		<Unit filename="tools/Traffic2Tun.cpp" />
 		<Unit filename="tools/Traffic2Tun.h" />
@@ -57,8 +58,8 @@
 		<Unit filename="tools/Tun.h" />
 		<Unit filename="tools/TunConnection.cpp" />
 		<Unit filename="tools/TunConnection.h" />
-		<Unit filename="tools/console_colors" />
 		<Unit filename="tools/console_colors.h" />
+		<Unit filename="tools/sock_utils.cpp" />
 		<Unit filename="tools/sock_utils.h" />
 		<Unit filename="tools/socks5_defs.h" />
 		<Unit filename="tools/socks5_tcp.cpp" />
