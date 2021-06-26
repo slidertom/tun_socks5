@@ -79,7 +79,7 @@ static void SendSockTest(int fdSoc)
 {
     std::string sDstAddress = "34.117.59.81";
 	//SOCKS5::DNS_local_resolve("www.ipinfo.io", sDstAddress);
-    int nRet = socks5_tcp_client_connection_request(fdSoc, sDstAddress.c_str(), 80); // ?
+    int nRet = socks5_tcp::tcp_client_connection_request(fdSoc, sDstAddress.c_str(), 80); // ?
     if ( nRet == -1) {
         std::cout << "client_connection_request error" << std::endl;
     }
@@ -151,7 +151,7 @@ int main()
             return 0;
         }
         std::cout << "Socket has started:" << fdSoc << std::endl;
-        socks5_client_greeting_no_auth(fdSoc);
+        socks5_tcp::client_greeting_no_auth(fdSoc);
         SendSockTest(fdSoc);
    //     SOCKS5::close_connection(fdSoc);
  //   }

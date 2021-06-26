@@ -18,7 +18,7 @@ TunConnection::TunConnection(Tun *pTun,
 {
     struct in_addr udpBindAddr;
     uint16_t       udpBindPort;
-    if ( !::socks5_get_udp_bind_params(sSocs5Server, nSocs5Port, m_fdSoc, udpBindAddr, udpBindPort) ) {
+    if ( !socks5_tcp::get_udp_bind_params(sSocs5Server, nSocs5Port, m_fdSoc, udpBindAddr, udpBindPort) ) {
         std::cout << RED << "socks5_get_udp_bind_params failed." << RESET << std::endl;
         exit(EXIT_FAILURE); // TODO: exception or state check
     }

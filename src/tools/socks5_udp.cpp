@@ -104,23 +104,6 @@ uint32_t ip_checksum_add(uint32_t current, const void *data, int len) {
     }
     return checksum;
 }
-/* function: ipv4_pseudo_header_checksum
- * calculate the pseudo header checksum for use in tcp/udp headers
- *   ip      - the ipv4 header
- *   len     - the transport length (transport header + payload)
- */
-uint32_t ipv4_pseudo_header_checksum(const struct iphdr* ip, uint16_t len) {
-    uint16_t temp_protocol, temp_length;
-    temp_protocol = htons(ip->protocol);
-    temp_length = htons(len);
-    uint32_t current = 0;
-    current = ip_checksum_add(current, &(ip->saddr), sizeof(uint32_t));
-    current = ip_checksum_add(current, &(ip->daddr), sizeof(uint32_t));
-    current = ip_checksum_add(current, &temp_protocol, sizeof(uint16_t));
-    current = ip_checksum_add(current, &temp_length, sizeof(uint16_t));
-    return current;
-}
-
 
 uint16_t inet_csum(const void *buf, size_t hdr_len)
 {
@@ -145,7 +128,7 @@ uint16_t inet_csum(const void *buf, size_t hdr_len)
 bool socks5_udp::send_packet_to_tun(int fdTun,
                                     unsigned char *buffer, size_t size,
                                     uint32_t tun_ip,
-                                    const Ipv4ConnMap &map_dst_to_connn) noexcept
+                                    const Ipv4ConnMap &map_dst_to_conn) noexcept
 {
     // this is just for the learning purposes do use boost asio for production
     // https://www.ridgesolutions.ie/index.php/2019/06/06/boost-asio-simple-udp-send-packet-example/
@@ -178,7 +161,7 @@ bool socks5_udp::send_packet_to_tun(int fdTun,
     //std::cout << "Destination address: " << ::inet_ntoa(inaddr);
     //std::cout << ":" << dport << std::endl;
 
-    const uint16_t sport = ::ipv4_conn_map_get_src_port_by_dst(map_dst_to_connn, inaddr.s_addr, dport);
+    const uint16_t sport = ::ipv4_conn_map_get_src_port_by_dst(map_dst_to_conn, inaddr.s_addr, dport);
     if (sport == 0) {
         std::cout << RED << "ERROR: ipv4_conn_map_get_src_port_by_dst failed to find src port.";
         std::cout << RESET << std::endl;

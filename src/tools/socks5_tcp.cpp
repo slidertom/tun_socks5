@@ -7,7 +7,7 @@
 #include <vector>
 #include <stdio.h>
 
-int socks5_client_greeting_no_auth(int fdSoc) noexcept
+int socks5_tcp::client_greeting_no_auth(int fdSoc) noexcept
 {
 	// [VERSION, NAUTH, AUTH]
 	std::vector<char> client_greeting_msg = {
@@ -31,13 +31,13 @@ int socks5_client_greeting_no_auth(int fdSoc) noexcept
 	return 0;
 }
 
-std::pair<struct in_addr, uint16_t> socks5_udp_connection_request(int fdSock) noexcept
+static std::pair<struct in_addr, uint16_t> socks5_udp_connection_request(int fdSock) noexcept
 {
 	// The DST.ADDR and
     // DST.PORT fields contain the address and port that the client expects
     // to use to send UDP datagrams on for the association.
 	// The server MAY use this information to limit access to the association.
-	// Dante expects these values to be valid... (TODO: bind? open socket like server?)
+	// Dante expects these values to be valid? ... (TODO: bind? open socket like server?)
 	char ipv4_buffer[4];
 	::memset(ipv4_buffer, 0, sizeof(ipv4_buffer));
     const uint16_t destination_port = 0;
@@ -79,9 +79,8 @@ std::pair<struct in_addr, uint16_t> socks5_udp_connection_request(int fdSock) no
 	return std::make_pair(addr, 0);
 }
 
-
-bool socks5_get_udp_bind_params(const char *socks5_server, uint16_t socks5_port,
-                                int &fdSoc, struct in_addr &addr, uint16_t &port) noexcept
+bool socks5_tcp::get_udp_bind_params(const char *socks5_server, uint16_t socks5_port,
+                                     int &fdSoc, struct in_addr &addr, uint16_t &port) noexcept
 {
     fdSoc = sock_utils::create_tcp_socket_client(socks5_server, socks5_port);
     if (fdSoc == 0) {
@@ -93,8 +92,8 @@ bool socks5_get_udp_bind_params(const char *socks5_server, uint16_t socks5_port,
     std::cout << "TCP Socket: ";
     sock_utils::print_socket_info(fdSoc);
 
-    ::socks5_client_greeting_no_auth(fdSoc);
-    auto udp_conn = socks5_udp_connection_request(fdSoc);
+    socks5_tcp::client_greeting_no_auth(fdSoc);
+    auto udp_conn = ::socks5_udp_connection_request(fdSoc);
     if ( udp_conn.second == 0 ) {
         std::cout << "socks5_udp_connection_request failed" << std::endl;
         return false;
@@ -106,7 +105,9 @@ bool socks5_get_udp_bind_params(const char *socks5_server, uint16_t socks5_port,
     return true;
 }
 
-int socks5_tcp_client_connection_request(int net_serv_fd, const std::string& destination_addr, const std::uint16_t& destination_port) noexcept
+int socks5_tcp::tcp_client_connection_request(int fdSoc,
+                                              const std::string &destination_addr,
+                                              const std::uint16_t &destination_port) noexcept
 {
 	// [VERSION, SOCKS_CMD, RESV(0x00), (SOCKS5 Addr Type)[TYPE, ADDR], DST_PORT]
 	char ipv4_buffer[4];
@@ -125,16 +126,16 @@ int socks5_tcp_client_connection_request(int net_serv_fd, const std::string& des
 	client_connection_request.push_back(static_cast<char>(destination_port>>8));
 	client_connection_request.push_back(static_cast<char>(destination_port));
 
-	int write_ret = sock_utils::write_data(net_serv_fd, client_connection_request.data(), client_connection_request.size(), 0);
+	int write_ret = sock_utils::write_data(fdSoc, client_connection_request.data(), client_connection_request.size(), 0);
 
 	constexpr std::size_t reply_bytes = 1 + 1 + 1 + 1 + (1 + 4) + 2;
 	std::vector<char> server_responce(reply_bytes);
-	int read_ret = sock_utils::read_data(net_serv_fd, server_responce.data(), server_responce.size(), 0);
+	int read_ret = sock_utils::read_data(fdSoc, server_responce.data(), server_responce.size(), 0);
 
-	if(server_responce.at(0) == 0x05 && server_responce.at(1) == 0x00){
+	if (server_responce.at(0) == 0x05 && server_responce.at(1) == 0x00) {
 		return 0;
 	}
-	else{
+	else {
 		return -1;
 	}
 }
