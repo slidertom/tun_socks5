@@ -8,6 +8,8 @@
 #include "tools/sock_utils.h"
 #include "tools/console_colors.h"
 #include "tools/PollMgr.h"
+#include "tools/TunConnection.h"
+#include "tools/SocketUdpConnection.h"
 
 // etc/resolv.con change dns server from local
 
@@ -106,119 +108,7 @@ static void set_signal(int signo, void (*handler)(int))
     sigaction(signo, &sa, NULL);
 }
 
-#include "tools/Connection.h"
 
-
-class SocketUdpConnection : public Connection
-{
-public:
-    SocketUdpConnection(Tun *pTun, int fdSoc, Ipv4ConnMap *pUdpConnMap)
-        : m_pTun(pTun), m_fdSoc(fdSoc), m_pUdpConnMap(pUdpConnMap)
-    {
-         ::inet_pton(AF_INET, "10.0.0.1", &m_tun_ip);
-    }
-    virtual ~SocketUdpConnection() { }
-
-public:
-    virtual void HandleEvent() override
-    {
-        const int nRead = sock_utils::read_data(m_fdSoc, m_buffer, sizeof(m_buffer), 0);
-        if ( nRead > 0 ) {
-            //m_pTun->Write(m_buffer, nRead);
-            const int fdTun = m_pTun->GetFd();
-            socks5_udp::send_packet_to_tun(fdTun, (unsigned char *)m_buffer, nRead,
-                                            m_tun_ip, *m_pUdpConnMap);
-        }
-        else {
-            std::cout << "Socket closed connection: " << m_fdSoc << std::endl;
-        }
-    }
-
-private:
-    int m_fdSoc;
-    Tun *m_pTun;
-    uint32_t m_tun_ip;
-    Ipv4ConnMap *m_pUdpConnMap;
-
-private:
-    SocketUdpConnection(SocketUdpConnection &&x) = delete;
-    SocketUdpConnection(const SocketUdpConnection &x) = delete;
-    SocketUdpConnection &operator=(SocketUdpConnection &&x) = delete;
-    SocketUdpConnection &operator=(const SocketUdpConnection &x) = delete;
-};
-
-class TunConnection : public Connection
-{
-public:
-    TunConnection(Tun *pTun,
-                  const char *sSocs5Server, uint16_t nSocs5Port,
-                  PollMgr *pPollMgr, Ipv4ConnMap *pUdpConnMap)
-        : m_pTun(pTun), m_pPollMgr(pPollMgr), m_pUdpConnMap(pUdpConnMap)
-    {
-        struct in_addr udpBindAddr;
-        uint16_t       udpBindPort;
-        if ( !::socks5_get_udp_bind_params(sSocs5Server, nSocs5Port, m_fdSoc, udpBindAddr, udpBindPort) ) {
-            std::cout << RED << "socks5_get_udp_bind_params failed." << RESET << std::endl;
-            exit(EXIT_FAILURE); // TODO: exception or state check
-        }
-
-        //m_pPollMgr->Add(m_fdSoc, new SocketConnection(m_pTun, m_fdSoc, m_pUdpConnMap));
-
-        std::cout << "UDP ADDRESS AND BND.PORT: \t" << inet_ntoa(udpBindAddr) << ":" << udpBindPort << std::endl;
-        m_fdSocUdp = sock_utils::create_udp_socket(&udpBindAddr, udpBindPort);
-        if (m_fdSocUdp == -1) {
-            std::cout << RED << "sock_utils::create_udp_socket failed." << RESET << std::endl;
-            exit(EXIT_FAILURE); // TODO: exception or state check
-        }
-
-        std::cout << YELLOW << "UDP Socket: ";
-        sock_utils::print_socket_info(m_fdSocUdp);
-        std::cout << RESET;
-
-        m_pPollMgr->Add(m_fdSocUdp, new SocketUdpConnection(m_pTun, m_fdSocUdp, m_pUdpConnMap));
-    }
-
-    virtual ~TunConnection()
-    {
-        if (sock_utils::close_connection(this->m_fdSocUdp) == -1) {
-            std::cout << RED << "ERROR: sock_utils::close_connection failed: ";
-            std::cout << this->m_fdSocUdp << "." << RESET << std::endl;
-        }
-
-        if (sock_utils::close_connection(this->m_fdSoc) == -1) {
-            std::cout << RED << "ERROR: sock_utils::close_connection failed: ";
-            std::cout << this->m_fdSoc << "." << RESET << std::endl;
-        }
-    }
-
-public:
-    virtual void HandleEvent() override
-    {
-        const int nRead = m_pTun->Read(m_buffer, sizeof(m_buffer));
-        if (nRead <= 0) {
-            return;
-        }
-
-        if ( ipv4::is_udp(m_buffer) ) {
-            std::cout << "TUN => SOC ";
-            ipv4::print_udp_packet((unsigned char *)m_buffer, nRead);
-            ::map_udp_packet(m_buffer, nRead, *m_pUdpConnMap);
-            socks5_udp::send_packet_to_socket(m_fdSocUdp, (unsigned char *)m_buffer, nRead);
-        }
-        else {
-            //sendData(fdSoc, m_buffer, nRead);
-        }
-    }
-
-private:
-    Tun *m_pTun;
-
-    int m_fdSoc {0}; // UDP associate socket
-
-    int m_fdSocUdp {0};
-    PollMgr *m_pPollMgr;
-    Ipv4ConnMap *m_pUdpConnMap;
-};
 
 int main()
 {

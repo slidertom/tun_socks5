@@ -13,4 +13,5 @@ bool socks5_get_udp_bind_params(const char *socks5_server, uint16_t socks5_port,
                                 int &fdSoc, struct in_addr &addr, uint16_t &port) noexcept;
 
 int socks5_tcp_client_connection_request(int net_serv_fd,
-                                         const std::string& destination_addr, const std::uint16_t& destination_port) noexcept;
+                                         const std::string &destination_addr,
+                                         const std::uint16_t &destination_port) noexcept;

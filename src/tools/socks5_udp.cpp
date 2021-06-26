@@ -121,31 +121,6 @@ uint32_t ipv4_pseudo_header_checksum(const struct iphdr* ip, uint16_t len) {
     return current;
 }
 
-uint16_t checksum2(const void* buf, size_t buflen)
-{
-    uint32_t r = 0;
-    size_t len = buflen;
-
-    const uint16_t* d = reinterpret_cast<const uint16_t*>(buf);
-
-    while (len > 1)
-    {
-        r += *d++;
-        len -= sizeof(uint16_t);
-    }
-
-    if (len)
-    {
-        r += *reinterpret_cast<const uint8_t*>(d);
-    }
-
-    while (r >> 16)
-    {
-        r = (r & 0xffff) + (r >> 16);
-    }
-
-    return static_cast<uint16_t>(~r);
-}
 
 uint16_t inet_csum(const void *buf, size_t hdr_len)
 {
@@ -164,94 +139,6 @@ uint16_t inet_csum(const void *buf, size_t hdr_len)
     sum = (sum & 0xFFFF) + (sum >> 16);
 
     return(~sum);
-}
-
-/* set tcp checksum: given IP header and tcp segment */
-void compute_tcp_checksum(struct iphdr *pIph, unsigned short *ipPayload) {
-    register unsigned long sum = 0;
-    unsigned short tcpLen = ntohs(pIph->tot_len) - (pIph->ihl<<2);
-    struct tcphdr *tcphdrp = (struct tcphdr*)(ipPayload);
-    //add the pseudo header
-    //the source ip
-    sum += (pIph->saddr>>16)&0xFFFF;
-    sum += (pIph->saddr)&0xFFFF;
-    //the dest ip
-    sum += (pIph->daddr>>16)&0xFFFF;
-    sum += (pIph->daddr)&0xFFFF;
-    //protocol and reserved: 6
-    sum += htons(IPPROTO_TCP);
-    //the length
-    sum += htons(tcpLen);
-
-    //add the IP payload
-    //initialize checksum to 0
-    tcphdrp->check = 0;
-    while (tcpLen > 1) {
-        sum += * ipPayload++;
-        tcpLen -= 2;
-    }
-    //if any bytes left, pad the bytes and add
-    if(tcpLen > 0) {
-        //printf("+++++++++++padding, %dn", tcpLen);
-        sum += ((*ipPayload)&htons(0xFF00));
-    }
-      //Fold 32-bit sum to 16 bits: add carrier to result
-      while (sum>>16) {
-          sum = (sum & 0xffff) + (sum >> 16);
-      }
-      sum = ~sum;
-    //set computation result
-    tcphdrp->check = (unsigned short)sum;
-}
-
-typedef unsigned long long u64;
-typedef unsigned int u32;
-typedef unsigned short u16;
-typedef unsigned char u8;
-static u16 ip_checksum_fold(u64 sum)
-{
-	while (sum & ~0xffffffffULL)
-		sum = (sum >> 32) + (sum & 0xffffffffULL);
-	while (sum & 0xffff0000ULL)
-		sum = (sum >> 16) + (sum & 0xffffULL);
-
-	return ~sum;
-}
-
-/* Add bytes in buffer to a running checksum. Returns the new
- * intermediate checksum. Use ip_checksum_fold() to convert the
- * intermediate checksum to final form.
- */
-static u64 ip_checksum_partial(const void *p, size_t len, u64 sum)
-{
-	/* Main loop: 32 bits at a time.
-	 * We take advantage of intel's ability to do unaligned memory
-	 * accesses with minimal additional cost. Other architectures
-	 * probably want to be more careful here.
-	 */
-	const u32 *p32 = (const u32 *)(p);
-	for (; len >= sizeof(*p32); len -= sizeof(*p32))
-		sum += *p32++;
-
-	/* Handle un-32bit-aligned trailing bytes */
-	const u16 *p16 = (const u16 *)(p32);
-	if (len >= 2) {
-		sum += *p16++;
-		len -= sizeof(*p16);
-	}
-	if (len > 0) {
-		const u8 *p8 = (const u8 *)(p16);
-		sum += ntohs(*p8 << 8);	/* RFC says pad last byte */
-	}
-
-	return sum;
-}
-
-/* Calculates and returns IPv4 header checksum. */
-u16 ipv4_checksum(void *ip_header, size_t ip_header_bytes)
-{
-	return ip_checksum_fold(
-		ip_checksum_partial(ip_header, ip_header_bytes, 0));
 }
 
 
