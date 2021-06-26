@@ -20,7 +20,8 @@ TunConnection::TunConnection(Tun *pTun,
     uint16_t       udpBindPort;
     if ( !socks5_tcp::get_udp_bind_params(sSocs5Server, nSocs5Port, m_fdSoc, udpBindAddr, udpBindPort) ) {
         std::cout << RED << "socks5_get_udp_bind_params failed." << RESET << std::endl;
-        exit(EXIT_FAILURE); // TODO: exception or state check
+        this->m_fdSoc = -1;
+        return;
     }
 
     //m_pPollMgr->Add(m_fdSoc, new SocketConnection(m_pTun, m_fdSoc, m_pUdpConnMap));
@@ -29,7 +30,8 @@ TunConnection::TunConnection(Tun *pTun,
     m_fdSocUdp = sock_utils::create_udp_socket(&udpBindAddr, udpBindPort);
     if (m_fdSocUdp == -1) {
         std::cout << RED << "sock_utils::create_udp_socket failed." << RESET << std::endl;
-        exit(EXIT_FAILURE); // TODO: exception or state check
+        this->m_fdSoc = -1;
+        return;
     }
 
     std::cout << YELLOW << "UDP Socket: ";
@@ -41,14 +43,18 @@ TunConnection::TunConnection(Tun *pTun,
 
 TunConnection::~TunConnection()
 {
-    if (sock_utils::close_connection(this->m_fdSocUdp) == -1) {
-        std::cout << RED << "ERROR: sock_utils::close_connection failed: ";
-        std::cout << this->m_fdSocUdp << "." << RESET << std::endl;
+    if (this->m_fdSocUdp != -1) {
+        if (sock_utils::close_connection(this->m_fdSocUdp) == -1) {
+            std::cout << RED << "ERROR: sock_utils::close_connection failed: ";
+            std::cout << this->m_fdSocUdp << "." << RESET << std::endl;
+        }
     }
 
-    if (sock_utils::close_connection(this->m_fdSoc) == -1) {
-        std::cout << RED << "ERROR: sock_utils::close_connection failed: ";
-        std::cout << this->m_fdSoc << "." << RESET << std::endl;
+    if (this->m_fdSoc != -1) {
+        if (sock_utils::close_connection(this->m_fdSoc) == -1) {
+            std::cout << RED << "ERROR: sock_utils::close_connection failed: ";
+            std::cout << this->m_fdSoc << "." << RESET << std::endl;
+        }
     }
 }
 

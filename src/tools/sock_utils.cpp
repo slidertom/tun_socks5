@@ -74,14 +74,14 @@ int sock_utils::read_data(int fdSoc, char *buffer, size_t buff_read_len, int rec
     return recv_ret;
 }
 
-size_t sock_utils::write_data(int fdSoc, const char *buffer, size_t buff_write_len, int send_flags) noexcept
+int sock_utils::write_data(int fdSoc, const std::byte *buffer, size_t buff_write_len, int send_flags) noexcept
 {
     // https://beej.us/guide/bgnet/html/#sendall
     // Remember back in the section about send(), above,
     // when I said that send() might not send all the bytes you asked it to?
     // That is, you want it to send 512 bytes, but it returns 412. What happened to the remaining 100 bytes?
 
-    size_t total = 0;        // how many bytes we've sent
+    size_t total = 0;                  // how many bytes we've sent
     size_t bytesleft = buff_write_len; // how many we have left to send
     int n;
     while (total < buff_write_len) {

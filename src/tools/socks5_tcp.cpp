@@ -12,10 +12,10 @@
 int socks5_tcp::client_greeting_no_auth(int fdSoc) noexcept
 {
 	// [VERSION, NAUTH, AUTH]
-	std::vector<char> client_greeting_msg = {
-		static_cast<char>(ESOCKS5_DEFAULTS::VERSION),
-		static_cast<char>(ESOCKS5_DEFAULTS::SUPPORT_AUTH),
-		static_cast<char>(ESOCKS5_AUTH_TYPES::NOAUTH)
+	std::vector<std::byte> client_greeting_msg = {
+		static_cast<std::byte>(ESOCKS5_DEFAULTS::VERSION),
+		static_cast<std::byte>(ESOCKS5_DEFAULTS::SUPPORT_AUTH),
+		static_cast<std::byte>(ESOCKS5_AUTH_TYPES::NOAUTH)
 	};
 
 	const int write_ret = sock_utils::write_data(fdSoc, client_greeting_msg.data(), client_greeting_msg.size(), 0);
@@ -40,6 +40,61 @@ int socks5_tcp::client_greeting_no_auth(int fdSoc) noexcept
 	return 0;
 }
 
+/*
+  Requests
+
+   Once the method-dependent subnegotiation has completed, the client
+   sends the request details.  If the negotiated method includes
+   encapsulation for purposes of integrity checking and/or
+   confidentiality, these requests MUST be encapsulated in the method-
+   dependent encapsulation.
+
+   The SOCKS request is formed as follows:
+
+        +----+-----+-------+------+----------+----------+
+        |VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
+        +----+-----+-------+------+----------+----------+
+        | 1  |  1  | X'00' |  1   | Variable |    2     |
+        +----+-----+-------+------+----------+----------+
+
+     Where:
+
+          o  VER    protocol version: X'05'
+          o  CMD
+             o  CONNECT X'01'
+             o  BIND X'02'
+             o  UDP ASSOCIATE X'03'
+          o  RSV    RESERVED
+          o  ATYP   address type of following address
+             o  IP V4 address: X'01'
+             o  DOMAINNAME: X'03'
+             o  IP V6 address: X'04'
+          o  DST.ADDR       desired destination address
+          o  DST.PORT desired destination port in network octet
+             order
+
+   The SOCKS server will typically evaluate the request based on source
+   and destination addresses, and return one or more reply messages, as
+   appropriate for the request type.
+*/
+//https://stackoverflow.com/questions/49855516/telegram-calls-via-dante-socks5-proxy-server-not-working
+/*
+    Client instantiates a TCP socks5 connection.
+    Client sends a UDP ASSOCIATE request, containing the client's source address and port,
+    which will be used to send UDP datagrams to the socks5 Server.
+
+    They might be zeros (in Telegram they are) (section 4).
+    Socks5 Server binds a random UDP port for relaying datagrams for this TCP socks5 connection and sends a
+    UDP ASSOCIATE response, containing the address and port where the client should send the datagrams to be relayed (section 6).
+    To send a datagram, the Client must add a header to the payload, containing a destination address and port,
+    where the server should relay that datagram (section 7).
+    Server will keep the UDP port bound until the TCP socks5 connection terminates.
+
+   As you can see, opening a single TCP port is not enough.
+   For UDP to work correctly, the automatically bound UDP port must be reachable by client.
+   NATs and Firewalls might further complicate the situation.
+*/
+
 static std::pair<struct in_addr, uint16_t> socks5_udp_connection_request(int fdSock) noexcept
 {
 	// The DST.ADDR and
@@ -52,19 +107,19 @@ static std::pair<struct in_addr, uint16_t> socks5_udp_connection_request(int fdS
     const uint16_t destination_port = 0;
 
     // [VERSION, SOCKS_CMD, RESV(0x00), (SOCKS5 Addr Type)[TYPE, ADDR], DST_PORT]
-	std::vector<char> client_connection_request = {
-		static_cast<char>(ESOCKS5_DEFAULTS::VERSION),
-		static_cast<char>(ESOCKS5_CONNECTION_CMD::UDP_ASSOCIATE),
-		static_cast<char>(ESOCKS5_DEFAULTS::RSV),
-		static_cast<char>(ESOCKS5_ADDR_TYPE::IPv4),
-		static_cast<char>(ipv4_buffer[0]),
-		static_cast<char>(ipv4_buffer[1]),
-		static_cast<char>(ipv4_buffer[2]),
-		static_cast<char>(ipv4_buffer[3]),
+	std::vector<std::byte> client_connection_request = {
+		static_cast<std::byte>(ESOCKS5_DEFAULTS::VERSION),
+		static_cast<std::byte>(ESOCKS5_CONNECTION_CMD::UDP_ASSOCIATE),
+		static_cast<std::byte>(ESOCKS5_DEFAULTS::RSV),
+		static_cast<std::byte>(ESOCKS5_ADDR_TYPE::IPv4),
+		static_cast<std::byte>(ipv4_buffer[0]),
+		static_cast<std::byte>(ipv4_buffer[1]),
+		static_cast<std::byte>(ipv4_buffer[2]),
+		static_cast<std::byte>(ipv4_buffer[3]),
 	};
 
-	client_connection_request.push_back(static_cast<char>(destination_port>>8));
-	client_connection_request.push_back(static_cast<char>(destination_port));
+	client_connection_request.push_back(static_cast<std::byte>(destination_port>>8));
+	client_connection_request.push_back(static_cast<std::byte>(destination_port));
 
 	const int write_ret = sock_utils::write_data(fdSock, client_connection_request.data(), client_connection_request.size(), 0);
 	if (write_ret < 0) {
@@ -129,18 +184,18 @@ int socks5_tcp::tcp_client_connection_request(int fdSoc,
 	char ipv4_buffer[4];
 	::inet_pton(AF_INET, destination_addr.c_str(), ipv4_buffer);
 
-	std::vector<char> client_connection_request = {
-		static_cast<char>(ESOCKS5_DEFAULTS::VERSION),
-		static_cast<char>(ESOCKS5_CONNECTION_CMD::TCP_STREAM),
-		static_cast<char>(ESOCKS5_DEFAULTS::RSV),
-		static_cast<char>(ESOCKS5_ADDR_TYPE::IPv4),
-		static_cast<char>(ipv4_buffer[0]),
-		static_cast<char>(ipv4_buffer[1]),
-		static_cast<char>(ipv4_buffer[2]),
-		static_cast<char>(ipv4_buffer[3]),
+	std::vector<std::byte> client_connection_request = {
+		static_cast<std::byte>(ESOCKS5_DEFAULTS::VERSION),
+		static_cast<std::byte>(ESOCKS5_CONNECTION_CMD::TCP_STREAM),
+		static_cast<std::byte>(ESOCKS5_DEFAULTS::RSV),
+		static_cast<std::byte>(ESOCKS5_ADDR_TYPE::IPv4),
+		static_cast<std::byte>(ipv4_buffer[0]),
+		static_cast<std::byte>(ipv4_buffer[1]),
+		static_cast<std::byte>(ipv4_buffer[2]),
+		static_cast<std::byte>(ipv4_buffer[3]),
 	};
-	client_connection_request.push_back(static_cast<char>(destination_port>>8));
-	client_connection_request.push_back(static_cast<char>(destination_port));
+	client_connection_request.push_back(static_cast<std::byte>(destination_port>>8));
+	client_connection_request.push_back(static_cast<std::byte>(destination_port));
 
 	const int write_ret = sock_utils::write_data(fdSoc, client_connection_request.data(), client_connection_request.size(), 0);
 	if (write_ret < 0) {

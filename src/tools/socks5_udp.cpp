@@ -56,7 +56,7 @@ bool socks5_udp::send_packet_to_socket(int fdSoc, unsigned char *buffer, size_t 
 
     // TODO: replace with std::vector<char> or better reuse boost asio or lwip
     // main point low level view howto format packet
-    char *out_data = (char *)::malloc(data_len);
+    std::byte *out_data = (std::byte *)::malloc(data_len);
         // Write header
         ::memcpy(out_data, &header, sizeof(header));
         out_data += sizeof(header);
@@ -201,59 +201,3 @@ bool socks5_udp::send_packet_to_tun(int fdTun,
 
 	return nRet != -1;
 }
-
-/*
-  Requests
-
-   Once the method-dependent subnegotiation has completed, the client
-   sends the request details.  If the negotiated method includes
-   encapsulation for purposes of integrity checking and/or
-   confidentiality, these requests MUST be encapsulated in the method-
-   dependent encapsulation.
-
-   The SOCKS request is formed as follows:
-
-        +----+-----+-------+------+----------+----------+
-        |VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
-        +----+-----+-------+------+----------+----------+
-        | 1  |  1  | X'00' |  1   | Variable |    2     |
-        +----+-----+-------+------+----------+----------+
-
-     Where:
-
-          o  VER    protocol version: X'05'
-          o  CMD
-             o  CONNECT X'01'
-             o  BIND X'02'
-             o  UDP ASSOCIATE X'03'
-          o  RSV    RESERVED
-          o  ATYP   address type of following address
-             o  IP V4 address: X'01'
-             o  DOMAINNAME: X'03'
-             o  IP V6 address: X'04'
-          o  DST.ADDR       desired destination address
-          o  DST.PORT desired destination port in network octet
-             order
-
-   The SOCKS server will typically evaluate the request based on source
-   and destination addresses, and return one or more reply messages, as
-   appropriate for the request type.
-*/
-//https://stackoverflow.com/questions/49855516/telegram-calls-via-dante-socks5-proxy-server-not-working
-/*
-    Client instantiates a TCP socks5 connection.
-    Client sends a UDP ASSOCIATE request, containing the client's source address and port,
-    which will be used to send UDP datagrams to the socks5 Server.
-
-    They might be zeros (in Telegram they are) (section 4).
-    Socks5 Server binds a random UDP port for relaying datagrams for this TCP socks5 connection and sends a
-    UDP ASSOCIATE response, containing the address and port where the client should send the datagrams to be relayed (section 6).
-    To send a datagram, the Client must add a header to the payload, containing a destination address and port,
-    where the server should relay that datagram (section 7).
-    Server will keep the UDP port bound until the TCP socks5 connection terminates.
-
-   As you can see, opening a single TCP port is not enough.
-   For UDP to work correctly, the automatically bound UDP port must be reachable by client.
-   NATs and Firewalls might further complicate the situation.
-*/
-

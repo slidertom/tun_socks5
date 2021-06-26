@@ -24,6 +24,7 @@ bool ipv4::is_udp(const char *buffer) noexcept
 }
 
 // https://github.com/joshlong/interesting-native-code-examples/blob/master/packet_sniffer.c
+/*
 static void PrintData(unsigned char *data, size_t Size)
 {
 	for (size_t i = 0; i < Size; ++i) {
@@ -63,7 +64,7 @@ static void PrintData(unsigned char *data, size_t Size)
 		}
 	}
 }
-
+*/
 void ipv4::print_ip_header(unsigned char *buffer, size_t size) noexcept
 {
 	struct iphdr *iph = (struct iphdr *)buffer;
@@ -153,22 +154,6 @@ void map_udp_packet(const char *buffer, size_t size, Ipv4ConnMap &map_dst_to_con
 
     auto src_conn = std::make_pair(source, dest);
     map_dst_to_conn[dest] = src_conn;
-}
-
-// https://github.com/google/packetdrill/blob/master/gtests/net/packetdrill/udp_packet.c
-bool sendData(int fd, void *data, int len)
-{
-    char *ptr = (char *)data;
-    while (len > 0) {
-        int sent = send(fd, ptr, len, 0);
-        if (sent <= 0) {
-            return false;
-        }
-        ptr += sent;
-        len -= sent;
-    }
-
-    return true;
 }
 
 int recvData(int fd, void *data, int len)

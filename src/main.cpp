@@ -51,7 +51,7 @@ static void SendSockData(int fdSoc)
 {
 	std::string sample_request = "GET /ip HTTP/1.1\r\nHost: ipinfo.io\r\nUser-Agent: curl/7.65.2\r\n\r\n";
 
-	sock_utils::write_data(fdSoc, sample_request.c_str(), sample_request.size(), 0);
+	sock_utils::write_data(fdSoc, (const std::byte *)sample_request.c_str(), sample_request.size(), 0);
 
 	constexpr std::size_t reply_buff_size = 2048;
 	char read_buffer_reply[reply_buff_size];
@@ -64,7 +64,7 @@ template <class TTun>
 static void SendSockData2(int fdSoc, TTun &tun)
 {
 	std::string sample_request = "GET /ip HTTP/1.1\r\nHost: ipinfo.io\r\nUser-Agent: curl/7.65.2\r\n\r\n";
-	sock_utils::write_data(fdSoc, sample_request.c_str(), sample_request.size(), 0);
+	sock_utils::write_data(fdSoc, (const std::byte *)sample_request.c_str(), sample_request.size(), 0);
 
 	constexpr std::size_t reply_buff_size = 2048;
 	char read_buffer_reply[reply_buff_size];
@@ -149,7 +149,13 @@ int main()
     PollMgr poll;
     Ipv4ConnMap udp_conn_map;
 
-    poll.Add(fdTun, new TunConnection(&tun, sSocs5Server, nSocs5Port, &poll, &udp_conn_map));
+    TunConnection *pTunConn = new TunConnection(&tun, sSocs5Server, nSocs5Port, &poll, &udp_conn_map);
+    if ( !pTunConn->IsValid() ) {
+        delete pTunConn;
+        return 0;
+    }
+
+    poll.Add(fdTun, pTunConn);
     poll.Add(fdSoc, nullptr);
 
     while (!_do_exit)  {

@@ -19,16 +19,19 @@ public:
 public:
     virtual void HandleEvent() override final;
 
-private:
-    Tun *m_pTun;
+public:
+    bool IsValid() const noexcept { return this->m_fdSoc != -1; }
 
-    int m_fdSoc    {0}; // UDP associated socket
-    int m_fdSocUdp {0}; // TCP authorization socket
+private:
+    Tun *m_pTun {nullptr};
+
+    int m_fdSoc    {-1}; // TCP authorization socket
+    int m_fdSocUdp {-1}; // UDP associated socket
 
     // TODO: tcp sockets map by destination
 
-    PollMgr *m_pPollMgr;
-    Ipv4ConnMap *m_pUdpConnMap;
+    PollMgr *m_pPollMgr {nullptr};
+    Ipv4ConnMap *m_pUdpConnMap {nullptr};
 
 private:
     TunConnection(const TunConnection &x) = delete;
