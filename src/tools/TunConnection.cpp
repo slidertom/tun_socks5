@@ -1,13 +1,12 @@
 #include "TunConnection.h"
 
-#include "SocketUdpConnection.h"
+#include "console_colors.h"
 #include "socks5_tcp.h"
 #include "sock_utils.h"
+#include "socks5_udp.h"
+#include "SocketUdpConnection.h"
 #include "PollMgr.h"
 #include "Tun.h"
-#include "socks5_udp.h"
-
-#include "console_colors.h"
 
 #include <arpa/inet.h>
 
@@ -60,15 +59,15 @@ TunConnection::~TunConnection()
 
 void TunConnection::HandleEvent()
 {
-    const int nRead = m_pTun->Read(m_buffer, sizeof(m_buffer));
+    const int nRead = m_pTun->Read((char *)m_buffer, sizeof(m_buffer));
     if (nRead <= 0) {
         return;
     }
 
-    if ( ipv4::is_udp(m_buffer) ) {
+    if ( ipv4::is_udp((char *)m_buffer) ) {
         std::cout << "TUN => SOC ";
         ipv4::print_udp_packet((unsigned char *)m_buffer, nRead);
-        ::map_udp_packet(m_buffer, nRead, *m_pUdpConnMap);
+        ::map_udp_packet((char *)m_buffer, nRead, *m_pUdpConnMap);
         socks5_udp::send_packet_to_socket(m_fdSocUdp, (unsigned char *)m_buffer, nRead);
     }
     else {

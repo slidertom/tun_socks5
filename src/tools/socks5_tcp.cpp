@@ -9,6 +9,20 @@
 #include <vector>
 #include <stdio.h>
 
+static bool socks5_check_server_response(const std::vector<std::byte> &response)
+{
+    if (response.size() < 2) {
+        return false;
+    }
+
+    if ((char)response.at(0) == 0x05 &&
+        (char)response.at(1) == 0x00) {
+		return true;
+	}
+
+	return false;
+}
+
 int socks5_tcp::client_greeting_no_auth(int fdSoc) noexcept
 {
 	// [VERSION, NAUTH, AUTH]
@@ -23,14 +37,13 @@ int socks5_tcp::client_greeting_no_auth(int fdSoc) noexcept
         return -1;
 	}
 
-	std::vector<char> server_choice(2);
+	std::vector<std::byte> server_choice(2);
 	const int read_ret = sock_utils::read_data(fdSoc, server_choice.data(), server_choice.size(), 0);
 	if (read_ret < 0) {
         return -1;
 	}
 
-	if (server_choice.at(0) == 0x05 &&
-        server_choice.at(1) == 0x00) {
+	if ( ::socks5_check_server_response(server_choice) ) {
 		return 0;
 	}
     else {
@@ -128,15 +141,14 @@ static std::pair<struct in_addr, uint16_t> socks5_udp_connection_request(int fdS
 	}
 
 	constexpr std::size_t reply_bytes = 1 + 1 + 1 + 1 + (1 + 4) + 2;
-	std::vector<char> server_response(reply_bytes);
+	std::vector<std::byte> server_response(reply_bytes);
 	const int read_ret = sock_utils::read_data(fdSock, server_response.data(), server_response.size(), 0);
     if (read_ret < 0) {
         struct in_addr addr;
         return std::make_pair(addr, 0);
     }
 
-	if (server_response.at(0) == 0x05 &&
-        server_response.at(1) == 0x00) {
+	if ( ::socks5_check_server_response(server_response) ) {
         // UDP_ASSOCIATE => UDP address and PORT to send requests
         void *addr_buffer = server_response.data() + sizeof(struct socks5_reply_header);
         struct addr_ipv4 ip4;
@@ -203,17 +215,16 @@ int socks5_tcp::tcp_client_connection_request(int fdSoc,
 	}
 
 	constexpr std::size_t reply_bytes = 1 + 1 + 1 + 1 + (1 + 4) + 2;
-	std::vector<char> server_responce(reply_bytes);
-	const int read_ret = sock_utils::read_data(fdSoc, server_responce.data(), server_responce.size(), 0);
+	std::vector<std::byte> server_response(reply_bytes);
+	const int read_ret = sock_utils::read_data(fdSoc, server_response.data(), server_response.size(), 0);
 	if (read_ret < 0) {
         return -1;
 	}
 
-	if (server_responce.at(0) == 0x05 && server_responce.at(1) == 0x00) {
+	if ( ::socks5_check_server_response(server_response) ) {
 		return 0;
 	}
-	else {
-		return -1;
-	}
+
+	return -1;
 }
 

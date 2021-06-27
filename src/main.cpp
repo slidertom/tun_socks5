@@ -54,7 +54,7 @@ static void SendSockData(int fdSoc)
 	sock_utils::write_data(fdSoc, (const std::byte *)sample_request.c_str(), sample_request.size(), 0);
 
 	constexpr std::size_t reply_buff_size = 2048;
-	char read_buffer_reply[reply_buff_size];
+	std::byte read_buffer_reply[reply_buff_size];
 	sock_utils::read_data(fdSoc, read_buffer_reply, reply_buff_size, 0);
 	std::cout << "IP addrees:"     << std::endl;
 	std::cout << read_buffer_reply << std::endl;
@@ -67,7 +67,7 @@ static void SendSockData2(int fdSoc, TTun &tun)
 	sock_utils::write_data(fdSoc, (const std::byte *)sample_request.c_str(), sample_request.size(), 0);
 
 	constexpr std::size_t reply_buff_size = 2048;
-	char read_buffer_reply[reply_buff_size];
+	std::byte read_buffer_reply[reply_buff_size];
 	sock_utils::read_data(fdSoc, read_buffer_reply, reply_buff_size, 0);
 	std::cout << read_buffer_reply << std::endl;
 	tun.Write(read_buffer_reply, reply_buff_size);

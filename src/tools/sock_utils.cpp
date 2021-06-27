@@ -64,13 +64,14 @@ int sock_utils::create_udp_socket(struct in_addr *inp, uint16_t dport) noexcept
     return sock_fd;
 }
 
-int sock_utils::read_data(int fdSoc, char *buffer, size_t buff_read_len, int recv_flag) noexcept
+int sock_utils::read_data(int fdSoc, std::byte *buffer, size_t buff_read_len, int recv_flag) noexcept
 {
     const int recv_ret = ::recv(fdSoc, buffer, buff_read_len, recv_flag);
     if (recv_ret < 0 ) {
         std::cout << RED << "sock_utils::read_data failed." << RESET << std::endl; // TODO: log function with levels
         return recv_ret;
     }
+
     return recv_ret;
 }
 
@@ -85,7 +86,7 @@ int sock_utils::write_data(int fdSoc, const std::byte *buffer, size_t buff_write
     size_t bytesleft = buff_write_len; // how many we have left to send
     int n;
     while (total < buff_write_len) {
-        n = send(fdSoc, buffer + total, bytesleft, 0);
+        n = ::send(fdSoc, buffer + total, bytesleft, 0);
         if (n == -1) {
             break;
         }

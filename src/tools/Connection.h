@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 class Connection
 {
 public:
@@ -12,5 +14,5 @@ public:
     virtual void HandleEvent() = 0;
 
 protected:
-    char m_buffer[65535];
+    std::byte m_buffer[65535];
 };
