@@ -28,3 +28,8 @@ Reused https://github.com/LaKabane/libtuntap
 #### Multiplex
 Epoll is used for polling. Could be also Poll.   
 https://www.ulduzsoft.com/2014/01/select-poll-epoll-practical-difference-for-system-architects/
+
+### Protocols
+udp ipv4 is only supported.
+udp packet construction is low level for the learning purposes. 
+boost asio must be used or similar library.
