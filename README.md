@@ -1,9 +1,8 @@
 # tun_socks5
 
 ### Intro
-tunproxy acts as ipv4 udp traffic transparent proxy.  
-Forwards all ipv4 udp traffic into socks5 server using locally   
-created tun interface.
+tunproxy forwards all ipv4 udp traffic   
+into socks5 server using locally created tun interface.
 
 ### Dependencies
 
