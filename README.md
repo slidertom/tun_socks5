@@ -23,8 +23,9 @@ make
 ### Documentation 
 
 ## Tun
-tun interface tutorial/intro https://backreference.org/2010/03/26/tuntap-interface-tutorial/
-reused fragments of https://github.com/LaKabane/libtuntap 
+Tun interface tutorial/intro https://backreference.org/2010/03/26/tuntap-interface-tutorial/
+
+Reused https://github.com/LaKabane/libtuntap 
 
 ## Multiplex
 Epoll is used for polling. Could be also Poll. 
