@@ -6,9 +6,9 @@ into socks5 server using locally created tun interface.
 
 ### Dependencies
 
-cmake or codeblocks
-iproute2
-build-essential
+cmake or codeblocks  
+iproute2  
+build-essential  
 
 ### Compilation
 
