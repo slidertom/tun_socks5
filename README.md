@@ -31,5 +31,5 @@ https://www.ulduzsoft.com/2014/01/select-poll-epoll-practical-difference-for-sys
 
 ### Protocols
 udp ipv4 is only supported.
-udp packet construction is low level for the learning purposes. 
-boost asio must be used or similar library.
+udp packet construction is low level for the learning purposes.   
+boost asio must be used or similar library.  
