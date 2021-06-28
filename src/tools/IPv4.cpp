@@ -14,7 +14,7 @@
 #include "socks5_udp.h"
 #include "console_colors.h"
 
-bool ipv4::is_udp(const char *buffer) noexcept
+bool ipv4::is_udp(const std::byte *buffer) noexcept
 {
 	struct iphdr *iph = (struct iphdr *)buffer;
 	if (iph->protocol == IPPROTO_UDP) {
@@ -65,7 +65,7 @@ static void PrintData(unsigned char *data, size_t Size)
 	}
 }
 */
-void ipv4::print_ip_header(unsigned char *buffer, size_t size) noexcept
+void ipv4::print_ip_header(const std::byte *buffer, size_t size) noexcept
 {
 	struct iphdr *iph = (struct iphdr *)buffer;
 
@@ -105,7 +105,7 @@ void ipv4::print_ip_header(unsigned char *buffer, size_t size) noexcept
     */
 }
 
-void ipv4::print_udp_packet(unsigned char *buffer, size_t size) noexcept
+void ipv4::print_udp_packet(const std::byte *buffer, size_t size) noexcept
 {
     //print_ip_header(buffer, size);
 
@@ -139,7 +139,7 @@ void ipv4::print_udp_packet(unsigned char *buffer, size_t size) noexcept
 	//PrintData(buffer + iphdrlen + sizeof(udph), (size - sizeof(udph) - iph->ihl*4));
 }
 
-void map_udp_packet(const char *buffer, size_t size, Ipv4ConnMap &map_dst_to_conn)
+void map_udp_packet(const std::byte *buffer, size_t size, Ipv4ConnMap &map_dst_to_conn)
 {
     struct iphdr *iph = (struct iphdr *)buffer;
     unsigned short iphdrlen = (unsigned short)iph->ihl*4;
@@ -163,7 +163,7 @@ int recvData(int fd, void *data, int len)
 
     while (len > 0)
     {
-        int recvd = recv(fd, ptr, len, 0);
+        int recvd = ::recv(fd, ptr, len, 0);
         if (recvd < 0) {
             return -1;
         }

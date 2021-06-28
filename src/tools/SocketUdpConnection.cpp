@@ -18,7 +18,7 @@ void SocketUdpConnection::HandleEvent()
     if ( nRead > 0 ) {
         //m_pTun->Write(m_buffer, nRead);
         const int fdTun = m_pTun->GetFd();
-        socks5_udp::send_packet_to_tun(fdTun, (unsigned char *)m_buffer, nRead,
+        socks5_udp::send_packet_to_tun(fdTun, (const std::byte *)m_buffer, nRead,
                                         m_tun_ip, *m_pUdpConnMap);
     }
     else {

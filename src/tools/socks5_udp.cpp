@@ -35,7 +35,7 @@
           o  DST.PORT       desired destination port
           o  DATA           user data
 */
-bool socks5_udp::send_packet_to_socket(int fdSoc, unsigned char *buffer, size_t size) noexcept
+bool socks5_udp::send_packet_to_socket(int fdSoc, const std::byte *buffer, size_t size) noexcept
 {
     struct iphdr *iph = (struct iphdr *)buffer;
     unsigned short iphdrlen = (unsigned short)iph->ihl*4;
@@ -68,7 +68,7 @@ bool socks5_udp::send_packet_to_socket(int fdSoc, unsigned char *buffer, size_t 
         out_data += sizeof(uint16_t);
 
         // Write payload
-        unsigned char *data  = buffer + iphdrlen + sizeof(udph);
+        const std::byte *data  = buffer + iphdrlen + sizeof(udph);
         ::memcpy(out_data, data, pay_load_size);
         out_data += pay_load_size;
 
@@ -105,7 +105,7 @@ static uint16_t inet_csum(const void *buf, size_t hdr_len)
 }
 
 bool socks5_udp::send_packet_to_tun(int fdTun,
-                                    unsigned char *buffer, size_t size,
+                                    const std::byte *buffer, size_t size,
                                     uint32_t tun_ip,
                                     const Ipv4ConnMap &map_dst_to_conn) noexcept
 {
@@ -171,7 +171,7 @@ bool socks5_udp::send_packet_to_tun(int fdTun,
     udp_header.check   = 0;
     // checksum optional
 
-    char *out_data = (char *)::malloc(pack_size); // TODO: pay load size
+    std::byte *out_data = (std::byte *)::malloc(pack_size); // TODO: pay load size
 
     // The checksum should be calculated over the entire header with the checksum
     // field set to 0, so that's what we do
@@ -193,7 +193,7 @@ bool socks5_udp::send_packet_to_tun(int fdTun,
 
     std::cout << "SOC => TUN ";
     //ipv4::print_ip_header((unsigned char *)out_data, pack_size);
-    ipv4::print_udp_packet((unsigned char *)out_data, pack_size);
+    ipv4::print_udp_packet(out_data, pack_size);
 
     const int nRet = ::write(fdTun, out_data, pack_size);
 

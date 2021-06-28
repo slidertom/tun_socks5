@@ -64,11 +64,11 @@ void TunConnection::HandleEvent()
         return;
     }
 
-    if ( ipv4::is_udp((char *)m_buffer) ) {
+    if ( ipv4::is_udp((const std::byte *)m_buffer) ) {
         std::cout << "TUN => SOC ";
-        ipv4::print_udp_packet((unsigned char *)m_buffer, nRead);
-        ::map_udp_packet((char *)m_buffer, nRead, *m_pUdpConnMap);
-        socks5_udp::send_packet_to_socket(m_fdSocUdp, (unsigned char *)m_buffer, nRead);
+        ipv4::print_udp_packet((const std::byte *)m_buffer, nRead);
+        ::map_udp_packet((const std::byte *)m_buffer, nRead, *m_pUdpConnMap);
+        socks5_udp::send_packet_to_socket(m_fdSocUdp, (const std::byte *)m_buffer, nRead);
     }
     else {
         //sendData(fdSoc, m_buffer, nRead);

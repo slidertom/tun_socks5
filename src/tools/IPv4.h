@@ -2,11 +2,10 @@
 
 #include <bits/stdc++.h>
 
-
 namespace ipv4 {
-    bool is_udp(const char *buffer) noexcept;
-    void print_udp_packet(unsigned char *buffer, size_t size) noexcept;
-    void print_ip_header(unsigned char *buffer, size_t size) noexcept;
+    bool is_udp(const std::byte *buffer) noexcept;
+    void print_udp_packet(const std::byte *buffer, size_t size) noexcept;
+    void print_ip_header(const std::byte *buffer, size_t size) noexcept;
 };
 
 
@@ -41,8 +40,7 @@ inline uint16_t ipv4_conn_map_get_src_port_by_dst(const Ipv4ConnMap &map_dst_to_
     }
     return found->second.first.port;
 }
-void map_udp_packet(const char *buffer, size_t size, Ipv4ConnMap &map_dst_to_conn);
+void map_udp_packet(const std::byte *buffer, size_t size, Ipv4ConnMap &map_dst_to_conn);
 
-bool sendData(int fd, void *data, int len);
 int recvData(int fd, void *data, int len);
 
