@@ -24,26 +24,14 @@ TunConnection::TunConnection(Tun *pTun,
     //m_pPollMgr->Add(m_fdSoc, new SocketConnection(m_pTun, m_fdSoc, m_pUdpConnMap));
 
     std::cout << "UDP ADDRESS AND BND.PORT: \t" << inet_ntoa(m_udpBindAddr) << ":" << m_udpBindPort << std::endl;
-    m_fdSocUdp = sock_utils::create_udp_socket(&m_udpBindAddr, m_udpBindPort);
-    if (m_fdSocUdp == -1) {
-        std::cout << RED << "sock_utils::create_udp_socket failed." << RESET << std::endl;
-        this->m_fdSoc = -1;
-        return;
-    }
-
-    std::cout << YELLOW << "UDP Socket: ";
-    sock_utils::print_socket_info(m_fdSocUdp);
-    std::cout << RESET;
-
-    m_pPollMgr->Add(m_fdSocUdp, new SocketUdpConnection(m_pTun, m_fdSocUdp, m_pUdpConnMap));
 }
 
 TunConnection::~TunConnection()
 {
-    if (this->m_fdSocUdp != -1) {
-        if (sock_utils::close_connection(this->m_fdSocUdp) == -1) {
+    for (const auto &elem : m_dest_to_socket) {
+        if (sock_utils::close_connection(elem.second) == -1) {
             std::cout << RED << "ERROR: sock_utils::close_connection failed: ";
-            std::cout << this->m_fdSocUdp << "." << RESET << std::endl;
+            std::cout << elem.second << "." << RESET << std::endl;
         }
     }
 
@@ -77,6 +65,10 @@ void TunConnection::HandleEvent()
             fdSocUdp = sock_utils::create_udp_socket(&m_udpBindAddr, m_udpBindPort);
             m_pPollMgr->Add(fdSocUdp, new SocketUdpConnection(m_pTun, fdSocUdp, m_pUdpConnMap));
             m_dest_to_socket[dest] = fdSocUdp;
+
+            std::cout << YELLOW << "UDP Socket: ";
+            sock_utils::print_socket_info(fdSocUdp);
+            std::cout << RESET;
         }
         socks5_udp::send_packet_to_socket(fdSocUdp, (const std::byte *)m_buffer, nRead);
         // TODO: maximum connections support

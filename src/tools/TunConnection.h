@@ -27,7 +27,6 @@ private:
     Tun *m_pTun {nullptr};
 
     int m_fdSoc    {-1}; // TCP authorization socket
-    int m_fdSocUdp {-1}; // UDP associated socket
 
     struct in_addr m_udpBindAddr;
     uint16_t       m_udpBindPort;
