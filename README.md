@@ -57,6 +57,9 @@ https://www.inet.no/dante/
 Probably dante expects client side port   
 during UDP ASSOCIATE request.  
 
+ssh -N -D 0.0.0.0:1080 localhost
+does not support udp.
+
 udp packets emulation  
 simply: dig domain (e.g.: dig www.google.com)  
 iperf3 (debian: https://packages.debian.org/search?keywords=iperf3)  
