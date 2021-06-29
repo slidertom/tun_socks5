@@ -21,8 +21,6 @@ TunConnection::TunConnection(Tun *pTun,
         return;
     }
 
-    //m_pPollMgr->Add(m_fdSoc, new SocketConnection(m_pTun, m_fdSoc, m_pUdpConnMap));
-
     std::cout << "UDP ADDRESS AND BND.PORT: \t" << inet_ntoa(m_udpBindAddr) << ":" << m_udpBindPort << std::endl;
 }
 
@@ -74,6 +72,11 @@ void TunConnection::HandleEvent()
         // TODO: maximum connections support
     }
     else {
-        //sendData(fdSoc, m_buffer, nRead);
+        // TODO: get TCP payload
+        // get port and destination
+        // const int fdSoc = sock_utils::create_tcp_socket_client(sSocs5Server, nSocs5Port);
+        // socks5_tcp::client_greeting_no_auth(fdSoc);
+        // socks5_tcp::tcp_client_connection_request
+        // send payload
     }
 }

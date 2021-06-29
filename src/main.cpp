@@ -47,10 +47,10 @@
 
 /* local_ip4 is in network byte address order.*/
 // tshark -i eth0 -f "udp port 1082"
-static void SendSockData(int fdSoc)
-{
-	std::string sample_request = "GET /ip HTTP/1.1\r\nHost: ipinfo.io\r\nUser-Agent: curl/7.65.2\r\n\r\n";
 
+static void SendGetProxyIP(int fdSoc)
+{
+	const std::string sample_request = "GET /ip HTTP/1.1\r\nHost: ipinfo.io\r\nUser-Agent: curl/7.65.2\r\n\r\n";
 	sock_utils::write_data(fdSoc, (const std::byte *)sample_request.c_str(), sample_request.size(), 0);
 
 	constexpr std::size_t reply_buff_size = 2048;
@@ -60,30 +60,14 @@ static void SendSockData(int fdSoc)
 	std::cout << read_buffer_reply << std::endl;
 }
 
-template <class TTun>
-static void SendSockData2(int fdSoc, TTun &tun)
-{
-	std::string sample_request = "GET /ip HTTP/1.1\r\nHost: ipinfo.io\r\nUser-Agent: curl/7.65.2\r\n\r\n";
-	sock_utils::write_data(fdSoc, (const std::byte *)sample_request.c_str(), sample_request.size(), 0);
-
-	constexpr std::size_t reply_buff_size = 2048;
-	std::byte read_buffer_reply[reply_buff_size];
-	sock_utils::read_data(fdSoc, read_buffer_reply, reply_buff_size, 0);
-	std::cout << read_buffer_reply << std::endl;
-	tun.Write(read_buffer_reply, reply_buff_size);
-
-}
-
 static void SendSockTest(int fdSoc)
 {
     std::string sDstAddress = "34.117.59.81";
-	//SOCKS5::DNS_local_resolve("www.ipinfo.io", sDstAddress);
-    int nRet = socks5_tcp::tcp_client_connection_request(fdSoc, sDstAddress.c_str(), 80); // ?
+    const int nRet = socks5_tcp::tcp_client_connection_request(fdSoc, sDstAddress.c_str(), 80); // ?
     if ( nRet == -1) {
         std::cout << "client_connection_request error" << std::endl;
     }
-
-    SendSockData(fdSoc);
+    SendGetProxyIP(fdSoc);
 }
 
 static int  _do_exit = 0;
@@ -124,8 +108,6 @@ int main(int argc, char * argv[])
 
     const char *sTunIp  = "10.0.0.1";
     const char *sTunDev = "tun2sc5";
-    //const char *sSocs5Server = "212.122.76.241";
-    //const uint16_t nSocs5Port = 1081;
 
     const char *sSocs5Server = "192.168.19.142";
     const uint16_t nSocs5Port = 1082;
@@ -148,7 +130,7 @@ int main(int argc, char * argv[])
 
     redirect_traff.Start(sTunDev, sSocs5Server, sEthName.c_str());
 
-//    {  // Direct socket server test
+    {  // Direct socket server test
         const int fdSoc = sock_utils::create_tcp_socket_client(sSocs5Server, nSocs5Port);
         if (fdSoc <= 0) {
             std::cout << "Socket start has failed: " << fdSoc << std::endl;
@@ -158,8 +140,7 @@ int main(int argc, char * argv[])
         socks5_tcp::client_greeting_no_auth(fdSoc);
         SendSockTest(fdSoc);
         sock_utils::close_connection(fdSoc);
- //   }
-
+    }
 
     std::cout << std::endl;
 
@@ -173,7 +154,6 @@ int main(int argc, char * argv[])
     }
 
     poll.Add(fdTun, pTunConn);
-    //poll.Add(fdSoc, nullptr);
 
     while (!_do_exit)  {
         poll.Wait();
