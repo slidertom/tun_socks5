@@ -96,10 +96,18 @@ std::string Traffic2Tun::GetProxyEthName(const char *sProxyIp) noexcept
     std::vector<std::string> result;
     ::str_split_string(sOutput.c_str(), " ", result, false);
 
-    if (result.size() < 5) {
-        std::cerr << RED << "Ethernet device was not found. Output: '" << sOutput << "'" <<  RESET << std::endl;
-        return "";
+    bool bFound = false;
+    for (const std::string &str : result)
+    {
+        if (bFound) {
+            return str;
+        }
+
+        if (str == "dev") {
+            bFound = true;
+        }
     }
 
-    return result[4];
+    std::cerr << RED << "Ethernet device was not found. Output: '" << sOutput << "'" <<  RESET << std::endl;
+    return "";
 }

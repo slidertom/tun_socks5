@@ -2,15 +2,15 @@
 #define __STR_UTIL_H__
 #pragma once
 
-#include "vector"
+#include <vector>
 
 #ifndef _INC_MATH
     #include <math.h>
 #endif
 
-#include "string"
-#include "locale"
-#include "algorithm"
+#include <string>
+#include <locale>
+#include <algorithm>
 
 // C:\Program Files (x86)\Windows Kits\10\Include\10.0.17134.0\shared\minwindef.h
 // https://stackoverflow.com/questions/6884093/warning-c4003-not-enough-actual-parameters-for-macro-max-visual-studio-2010
