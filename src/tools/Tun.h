@@ -22,10 +22,12 @@ public:
 
     int GetFd() const noexcept;
     const char *GetIP() const noexcept { return m_sIP.c_str(); }
+    uint32_t GetIPAddr() const noexcept { return m_ip; }
 
 private:
     struct device *m_pDevice {nullptr};
     std::string m_sIP;
+    uint32_t m_ip {0};
 
 private:
     Tun(const Tun &x) = delete;

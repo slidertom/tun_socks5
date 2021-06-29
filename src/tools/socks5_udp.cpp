@@ -56,15 +56,18 @@ bool socks5_udp::send_packet_to_socket(int fdSoc, const std::byte *buffer, size_
 
     // TODO: replace with std::vector<char> or better reuse boost asio or lwip
     // main point low level view howto format packet
+
     std::byte *out_data = (std::byte *)::malloc(data_len);
         // Write header
         ::memcpy(out_data, &header, sizeof(header));
         out_data += sizeof(header);
 
         // Write DST
-        ::memcpy(out_data, &iph->daddr,     sizeof(uint32_t));
+        ::memcpy(out_data, &iph->daddr, sizeof(uint32_t));
         out_data += sizeof(uint32_t);
-        ::memcpy(out_data, &udph->uh_dport, sizeof(uint16_t));
+
+        uint16_t dport = udph->uh_dport;
+        ::memcpy(out_data, &dport, sizeof(uint16_t));
         out_data += sizeof(uint16_t);
 
         // Write payload

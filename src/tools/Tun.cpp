@@ -1,9 +1,11 @@
 #include "Tun.h"
 
+#include "../lib/tuntap.h"
+
 #include <cstdio>
 #include <stdlib.h>
 
-#include "../lib/tuntap.h"
+#include <arpa/inet.h>
 
 int Tun::Init(const char *sName, const char *sIP)
 {
@@ -35,6 +37,8 @@ int Tun::Init(const char *sName, const char *sIP)
 	}
 
 	::tuntap_set_nonblocking(m_pDevice, 1);
+
+    ::inet_pton(AF_INET, sIP, &m_ip);
 
 	return ::tuntap_get_fd(m_pDevice);
 }

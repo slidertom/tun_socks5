@@ -4,13 +4,10 @@
 #include "Tun.h"
 #include "socks5_udp.h"
 
-#include <arpa/inet.h>
-
 SocketUdpConnection::SocketUdpConnection(Tun *pTun, int fdSoc, Ipv4ConnMap *pUdpConnMap)
 : m_pTun(pTun), m_fdSoc(fdSoc), m_pUdpConnMap(pUdpConnMap)
 {
-    const char *sIP = m_pTun->GetIP();
-    ::inet_pton(AF_INET, sIP, &m_tun_ip);
+    m_tun_ip= m_pTun->GetIPAddr();
 }
 
 void SocketUdpConnection::HandleEvent()

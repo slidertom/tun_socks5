@@ -46,7 +46,7 @@
 // in the description, in my first reading of the source code i do not have seen it.
 
 /* local_ip4 is in network byte address order.*/
-
+// tshark -i eth0 -f "udp port 1082"
 static void SendSockData(int fdSoc)
 {
 	std::string sample_request = "GET /ip HTTP/1.1\r\nHost: ipinfo.io\r\nUser-Agent: curl/7.65.2\r\n\r\n";

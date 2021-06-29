@@ -86,7 +86,7 @@ int sock_utils::write_data(int fdSoc, const std::byte *buffer, size_t buff_write
     size_t bytesleft = buff_write_len; // how many we have left to send
     int n;
     while (total < buff_write_len) {
-        n = ::send(fdSoc, buffer + total, bytesleft, 0);
+        n = ::send(fdSoc, buffer + total, bytesleft, 0); // MSG_NOSIGNAL?
         if (n == -1) {
             break;
         }

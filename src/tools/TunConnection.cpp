@@ -79,6 +79,7 @@ void TunConnection::HandleEvent()
             m_dest_to_socket[dest] = fdSocUdp;
         }
         socks5_udp::send_packet_to_socket(fdSocUdp, (const std::byte *)m_buffer, nRead);
+        // TODO: maximum connections support
     }
     else {
         //sendData(fdSoc, m_buffer, nRead);
