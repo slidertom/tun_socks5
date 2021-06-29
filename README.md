@@ -40,3 +40,9 @@ https://github.com/axboe/liburing/issues/189
 udp ipv4 is only supported.
 udp packet construction is low level for the learning purposes.   
 boost asio must be used or similar library.  
+
+### Test
+Utility tested with glider.
+```sh
+glider -verbose -listen socks5://:1080
+````
