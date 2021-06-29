@@ -23,9 +23,10 @@ int Tun::Init(const char *sName, const char *sIP)
         return -2;
 	}
 
-	int mtu = tuntap_get_mtu(m_pDevice);
-	mtu -= 20;
-	tuntap_set_mtu(m_pDevice, mtu);
+	// eth -> tun > send (header is more light)
+	// IPv4 header is not a fixed length. It has a minimum length of 20 bytes
+	// socks5 udp (ipv4) -> 10 bytes
+	// TODO: check performance on mtu changes -10, -20?
 
 	if (::tuntap_up(m_pDevice) == -1) {
 		return -3;

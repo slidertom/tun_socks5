@@ -14,6 +14,7 @@ public:
 // Operations
 public:
     bool Add(int fd, Connection *pConn) noexcept;
+    void Delete(int fd) noexcept;
     void Wait() const noexcept;
 
 // Attributes

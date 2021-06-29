@@ -1,10 +1,12 @@
 #include "PollMgr.h"
 
+#include "Connection.h"
+#include "console_colors.h"
+
 #include <unistd.h>
 #include <errno.h>
 #include <sys/epoll.h>
-
-#include "Connection.h"
+#include <iostream>
 
 PollMgr::PollMgr()
 {
@@ -42,13 +44,13 @@ bool PollMgr::Add(int fd, Connection *pConn) noexcept
     // you want, epoll does not use this information. We store a connection class pointer, pConnection1
     ev.data.ptr = pConn ? pConn : nullptr;
 
-    const int res = epoll_ctl(m_fdPoll, EPOLL_CTL_ADD, fd, &ev);
+    const int ret = epoll_ctl(m_fdPoll, EPOLL_CTL_ADD, fd, &ev);
 
-    if (res == EEXIST) {
+    if (ret == EEXIST) {
         return false; // please fix code logic
     }
 
-    if (res < 0) {
+    if (ret < 0) {
         return false;
     }
 
@@ -57,6 +59,21 @@ bool PollMgr::Add(int fd, Connection *pConn) noexcept
     }
 
     return true;
+}
+
+void PollMgr::Delete(int fd) noexcept
+{
+	const int ret = epoll_ctl(m_fdPoll, EPOLL_CTL_DEL, fd, nullptr);
+
+	if (ret == ENOENT) {
+        std::cout << RED << "fd is not found: " << fd << RESET << std::endl;
+        return;
+	}
+
+	if (ret < 0) {
+        std::cout << RED << "ERROR: epoll_ctl with param EPOLL_CTL_DEL have failed. " << RESET << std::endl;
+        return;
+	}
 }
 
 void PollMgr::Wait() const noexcept
