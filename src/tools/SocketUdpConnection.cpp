@@ -9,14 +9,14 @@
 SocketUdpConnection::SocketUdpConnection(Tun *pTun, int fdSoc, Ipv4ConnMap *pUdpConnMap)
 : m_pTun(pTun), m_fdSoc(fdSoc), m_pUdpConnMap(pUdpConnMap)
 {
-     ::inet_pton(AF_INET, "10.0.0.1", &m_tun_ip); // TODO
+    const char *sIP = m_pTun->GetIP();
+    ::inet_pton(AF_INET, sIP, &m_tun_ip);
 }
 
 void SocketUdpConnection::HandleEvent()
 {
     const int nRead = sock_utils::read_data(m_fdSoc, m_buffer, sizeof(m_buffer), 0);
     if ( nRead > 0 ) {
-        //m_pTun->Write(m_buffer, nRead);
         const int fdTun = m_pTun->GetFd();
         socks5_udp::send_packet_to_tun(fdTun, (const std::byte *)m_buffer, nRead,
                                         m_tun_ip, *m_pUdpConnMap);

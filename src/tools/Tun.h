@@ -21,6 +21,7 @@ public:
     void Write(char *buffer, size_t size);
 
     int GetFd() const noexcept;
+    const char *GetIP() const noexcept { return m_sIP.c_str(); }
 
 private:
     struct device *m_pDevice {nullptr};

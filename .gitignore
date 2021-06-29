@@ -3,3 +3,4 @@
 /src/*.layout
 /src/*.depend
 /src/bin/Debug
+/src/bin/Release

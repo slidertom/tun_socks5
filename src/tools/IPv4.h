@@ -8,7 +8,6 @@ namespace ipv4 {
     void print_ip_header(const std::byte *buffer, size_t size) noexcept;
 };
 
-
 struct addr_ipv4 {
     uint32_t addr;
     uint16_t port;

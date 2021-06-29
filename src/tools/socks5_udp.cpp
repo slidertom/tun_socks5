@@ -84,7 +84,6 @@ bool socks5_udp::send_packet_to_socket(int fdSoc, const std::byte *buffer, size_
     return true;
 }
 
-
 static uint16_t inet_csum(const void *buf, size_t hdr_len)
 {
     unsigned long sum = 0;

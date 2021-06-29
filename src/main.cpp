@@ -113,6 +113,8 @@ int main()
     set_signal(SIGTERM, sigexit);
     set_signal(SIGHUP,  sigexit);
 
+    const char *sTunIp  = "10.0.0.1";
+    const char *sTunDev = "tun2sc5";
     const char *sSocs5Server = "212.122.76.241";
     //const uint16_t nSocs5Port = 1081;
 
@@ -120,7 +122,7 @@ int main()
     const uint16_t nSocs5Port = 1082;
 
     Tun tun;
-    const int fdTun = tun.Init("tun2sc5", "10.0.0.1");
+    const int fdTun = tun.Init(sTunDev, sTunIp);
     if (fdTun < 0) {
         std::cout << RED << "Tun interface start has failed: " << fdTun << RESET << std::endl;
         return 0;
@@ -135,7 +137,7 @@ int main()
     }
     std::cout << GREEN << "Default ethernet device: " << sEthName << RESET << std::endl;
 
-    redirect_traff.Start(sSocs5Server, sEthName.c_str());
+    redirect_traff.Start(sTunDev, sSocs5Server, sEthName.c_str());
 
 //    {  // Direct socket server test
         const int fdSoc = sock_utils::create_tcp_socket_client(sSocs5Server, nSocs5Port);

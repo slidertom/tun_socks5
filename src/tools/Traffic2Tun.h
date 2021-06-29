@@ -20,5 +20,6 @@ public:
     static std::string GetProxyEthName(const char *sProxyIp) noexcept;
 
     static void CleanUp() noexcept;
-    static void Start(const char *sProxyIP, const char *sProxyDev) noexcept;
+    static void Start(const char *sTunDev,
+                      const char *sProxyIP, const char *sProxyDev) noexcept;
 };
