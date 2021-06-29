@@ -4,6 +4,8 @@
 tunproxy forwards all ipv4 udp traffic   
 into socks5 server using locally created tun interface.
 
+NO AUTHENTICATION is supported only.
+
 ### Dependencies
 
 cmake or codeblocks  
