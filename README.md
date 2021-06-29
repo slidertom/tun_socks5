@@ -66,4 +66,7 @@ iperf3 (debian: https://packages.debian.org/search?keywords=iperf3)
 server: iperf3 -s  
 client: iperf3 -u -c client.ip.address -b 1M  
 
-
+tshark traffic check on server side:
+tshark -i eth0 -f "udp port 1082"
+eth0 => do change with exact interface
+1082 => do change with exact socks5 server port
