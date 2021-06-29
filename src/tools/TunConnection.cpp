@@ -15,9 +15,7 @@ TunConnection::TunConnection(Tun *pTun,
                   PollMgr *pPollMgr, Ipv4ConnMap *pUdpConnMap)
 : m_pTun(pTun), m_pPollMgr(pPollMgr), m_pUdpConnMap(pUdpConnMap)
 {
-    struct in_addr udpBindAddr;
-    uint16_t       udpBindPort;
-    if ( !socks5_tcp::get_udp_bind_params(sSocs5Server, nSocs5Port, m_fdSoc, udpBindAddr, udpBindPort) ) {
+    if ( !socks5_tcp::get_udp_bind_params(sSocs5Server, nSocs5Port, m_fdSoc, m_udpBindAddr, m_udpBindPort) ) {
         std::cout << RED << "socks5_get_udp_bind_params failed." << RESET << std::endl;
         this->m_fdSoc = -1;
         return;
@@ -25,8 +23,8 @@ TunConnection::TunConnection(Tun *pTun,
 
     //m_pPollMgr->Add(m_fdSoc, new SocketConnection(m_pTun, m_fdSoc, m_pUdpConnMap));
 
-    std::cout << "UDP ADDRESS AND BND.PORT: \t" << inet_ntoa(udpBindAddr) << ":" << udpBindPort << std::endl;
-    m_fdSocUdp = sock_utils::create_udp_socket(&udpBindAddr, udpBindPort);
+    std::cout << "UDP ADDRESS AND BND.PORT: \t" << inet_ntoa(m_udpBindAddr) << ":" << m_udpBindPort << std::endl;
+    m_fdSocUdp = sock_utils::create_udp_socket(&m_udpBindAddr, m_udpBindPort);
     if (m_fdSocUdp == -1) {
         std::cout << RED << "sock_utils::create_udp_socket failed." << RESET << std::endl;
         this->m_fdSoc = -1;
@@ -64,11 +62,23 @@ void TunConnection::HandleEvent()
         return;
     }
 
-    if ( ipv4::is_udp((const std::byte *)m_buffer) ) {
+    if ( ipv4::is_udp((const std::byte *)m_buffer) )
+    {
         std::cout << "TUN => SOC ";
         ipv4::print_udp_packet((const std::byte *)m_buffer, nRead);
-        ::map_udp_packet((const std::byte *)m_buffer, nRead, *m_pUdpConnMap);
-        socks5_udp::send_packet_to_socket(m_fdSocUdp, (const std::byte *)m_buffer, nRead);
+
+        int fdSocUdp = -1;
+        auto dest = ::map_udp_packet((const std::byte *)m_buffer, nRead, *m_pUdpConnMap);
+        auto found = m_dest_to_socket.find(dest);
+        if (found != m_dest_to_socket.end() ) {
+            fdSocUdp = found->second;
+        }
+        else {
+            fdSocUdp = sock_utils::create_udp_socket(&m_udpBindAddr, m_udpBindPort);
+            m_pPollMgr->Add(fdSocUdp, new SocketUdpConnection(m_pTun, fdSocUdp, m_pUdpConnMap));
+            m_dest_to_socket[dest] = fdSocUdp;
+        }
+        socks5_udp::send_packet_to_socket(fdSocUdp, (const std::byte *)m_buffer, nRead);
     }
     else {
         //sendData(fdSoc, m_buffer, nRead);

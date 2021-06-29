@@ -39,7 +39,7 @@ inline uint16_t ipv4_conn_map_get_src_port_by_dst(const Ipv4ConnMap &map_dst_to_
     }
     return found->second.first.port;
 }
-void map_udp_packet(const std::byte *buffer, size_t size, Ipv4ConnMap &map_dst_to_conn);
+addr_ipv4 map_udp_packet(const std::byte *buffer, size_t size, Ipv4ConnMap &map_dst_to_conn);
 
 int recvData(int fd, void *data, int len);
 

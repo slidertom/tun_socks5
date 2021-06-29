@@ -139,7 +139,7 @@ void ipv4::print_udp_packet(const std::byte *buffer, size_t size) noexcept
 	//PrintData(buffer + iphdrlen + sizeof(udph), (size - sizeof(udph) - iph->ihl*4));
 }
 
-void map_udp_packet(const std::byte *buffer, size_t size, Ipv4ConnMap &map_dst_to_conn)
+addr_ipv4 map_udp_packet(const std::byte *buffer, size_t size, Ipv4ConnMap &map_dst_to_conn)
 {
     struct iphdr *iph = (struct iphdr *)buffer;
     unsigned short iphdrlen = (unsigned short)iph->ihl*4;
@@ -154,6 +154,8 @@ void map_udp_packet(const std::byte *buffer, size_t size, Ipv4ConnMap &map_dst_t
 
     auto src_conn = std::make_pair(source, dest);
     map_dst_to_conn[dest] = src_conn;
+
+    return dest;
 }
 
 int recvData(int fd, void *data, int len)

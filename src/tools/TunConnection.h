@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bits/stdc++.h>
+#include <arpa/inet.h>
 
 #include "Connection.h"
 #include "IPv4.h"
@@ -28,10 +29,12 @@ private:
     int m_fdSoc    {-1}; // TCP authorization socket
     int m_fdSocUdp {-1}; // UDP associated socket
 
-    // TODO: tcp sockets map by destination
+    struct in_addr m_udpBindAddr;
+    uint16_t       m_udpBindPort;
 
     PollMgr *m_pPollMgr {nullptr};
     Ipv4ConnMap *m_pUdpConnMap {nullptr};
+    std::map<addr_ipv4, int> m_dest_to_socket;
 
 private:
     TunConnection(const TunConnection &x) = delete;

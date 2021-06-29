@@ -100,7 +100,16 @@ static void set_signal(int signo, void (*handler)(int))
     sigaction(signo, &sa, NULL);
 }
 
-int main()
+static inline std::pair<std::string, uint16_t> GetParams(int argc, char* argv[])
+{
+    if (argc == 0) {
+        return std::make_pair("", 0);
+    }
+
+    return std::make_pair("", 0);
+}
+
+int main(int argc, char * argv[])
 {
     Traffic2Tun::SetUpIpv4();
 
