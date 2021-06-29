@@ -26,7 +26,7 @@ inline bool operator<(const struct addr_ipv4 &__x, const struct addr_ipv4 &__y) 
 
 using Ipv4Conn = std::pair<struct addr_ipv4, struct addr_ipv4>; // src -> dst
 #include "map"
-// TODO: review: for udp it's enough source port storage!
+
 using Ipv4ConnMap = std::map<struct addr_ipv4, Ipv4Conn>;
 inline uint16_t ipv4_conn_map_get_src_port_by_dst(const Ipv4ConnMap &map_dst_to_connn, uint32_t daddr, uint32_t dport)
 {

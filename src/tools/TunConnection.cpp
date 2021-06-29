@@ -22,6 +22,7 @@ TunConnection::TunConnection(Tun *pTun,
     }
 
     std::cout << "UDP ADDRESS AND BND.PORT: \t" << inet_ntoa(m_udpBindAddr) << ":" << m_udpBindPort << std::endl;
+    std::cout << "Max parallel udp sockets count: " << m_nMaxConnCnt << std::endl;
 }
 
 TunConnection::~TunConnection()
@@ -53,23 +54,44 @@ void TunConnection::HandleEvent()
         std::cout << "TUN => SOC ";
         ipv4::print_udp_packet((const std::byte *)m_buffer, nRead);
 
+        // connections "gc"
+        size_t conn_cnt = m_dest_to_socket.size();
+        if ( conn_cnt >= m_nMaxConnCnt) {
+            auto it_first = m_conns.begin();
+            {
+                auto found = m_dest_to_socket.find(it_first->first);
+                if (found != m_dest_to_socket.end()) {
+                    m_dest_to_socket.erase(found);
+                }
+                m_pPollMgr->Delete(it_first->second);
+                m_conns.erase(it_first);
+            }
+            {
+                auto found = m_pUdpConnMap->find(it_first->first);
+                if (found != m_pUdpConnMap->end()) {
+                    m_pUdpConnMap->erase(found);
+                }
+            }
+        }
+
         int fdSocUdp = -1;
         auto dest = ::map_udp_packet((const std::byte *)m_buffer, nRead, *m_pUdpConnMap);
         auto found = m_dest_to_socket.find(dest);
-        if (found != m_dest_to_socket.end() ) {
+        if (found != m_dest_to_socket.end()) {
             fdSocUdp = found->second;
         }
         else {
             fdSocUdp = sock_utils::create_udp_socket(&m_udpBindAddr, m_udpBindPort);
             m_pPollMgr->Add(fdSocUdp, new SocketUdpConnection(m_pTun, fdSocUdp, m_pUdpConnMap));
             m_dest_to_socket[dest] = fdSocUdp;
+            m_conns.push_back(std::make_pair(dest, fdSocUdp));
 
             std::cout << YELLOW << "UDP Socket: ";
             sock_utils::print_socket_info(fdSocUdp);
             std::cout << RESET;
         }
+
         socks5_udp::send_packet_to_socket(fdSocUdp, (const std::byte *)m_buffer, nRead);
-        // TODO: maximum connections support
     }
     else {
         // TODO: get TCP payload

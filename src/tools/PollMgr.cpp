@@ -12,13 +12,13 @@ PollMgr::PollMgr()
 {
     // Create the epoll descriptor. Only one is needed per app, and is used to monitor all sockets.
     // The function argument is ignored (it was not before, but now it is), so put your favorite number here
-    m_fdPoll = epoll_create(0xCAFE);
+    m_fdPoll = ::epoll_create(0xCAFE);
 }
 
 PollMgr::~PollMgr()
 {
-    for (Connection *pConn : m_conns) {
-        delete pConn;
+    for (auto &elem : m_conns) {
+        delete elem.second;
     }
 
 
@@ -44,18 +44,18 @@ bool PollMgr::Add(int fd, Connection *pConn) noexcept
     // you want, epoll does not use this information. We store a connection class pointer, pConnection1
     ev.data.ptr = pConn ? pConn : nullptr;
 
-    const int ret = epoll_ctl(m_fdPoll, EPOLL_CTL_ADD, fd, &ev);
+    const int nRet = ::epoll_ctl(m_fdPoll, EPOLL_CTL_ADD, fd, &ev);
 
-    if (ret == EEXIST) {
+    if (nRet == EEXIST) {
         return false; // please fix code logic
     }
 
-    if (ret < 0) {
+    if (nRet < 0) {
         return false;
     }
 
     if (pConn) {
-        m_conns.push_back(pConn);
+        m_conns[fd] = pConn;
     }
 
     return true;
@@ -63,17 +63,22 @@ bool PollMgr::Add(int fd, Connection *pConn) noexcept
 
 void PollMgr::Delete(int fd) noexcept
 {
-	const int ret = epoll_ctl(m_fdPoll, EPOLL_CTL_DEL, fd, nullptr);
+	const int nRet = ::epoll_ctl(m_fdPoll, EPOLL_CTL_DEL, fd, nullptr);
 
-	if (ret == ENOENT) {
+	if (nRet == ENOENT) {
         std::cout << RED << "fd is not found: " << fd << RESET << std::endl;
         return;
 	}
 
-	if (ret < 0) {
+	if (nRet < 0) {
         std::cout << RED << "ERROR: epoll_ctl with param EPOLL_CTL_DEL have failed. " << RESET << std::endl;
         return;
 	}
+
+    auto found = m_conns.find(fd);
+    if (found != m_conns.end()) {
+        m_conns.erase(found);
+    }
 }
 
 void PollMgr::Wait() const noexcept

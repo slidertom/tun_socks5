@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vector"
+#include "map"
 
 class Connection;
 
@@ -20,7 +20,7 @@ public:
 // Attributes
 private:
     int m_fdPoll;
-    std::vector<Connection *> m_conns; // just manage by our self
+    std::map<int, Connection *> m_conns; // just manage by our self
 
 private:
     PollMgr(PollMgr &&x) = delete;

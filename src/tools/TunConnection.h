@@ -2,6 +2,7 @@
 
 #include <bits/stdc++.h>
 #include <arpa/inet.h>
+#include <list>
 
 #include "Connection.h"
 #include "IPv4.h"
@@ -26,14 +27,17 @@ public:
 private:
     Tun *m_pTun {nullptr};
 
-    int m_fdSoc    {-1}; // TCP authorization socket
+    int m_fdSoc {-1}; // TCP authorization socket
 
     struct in_addr m_udpBindAddr;
     uint16_t       m_udpBindPort;
 
     PollMgr *m_pPollMgr {nullptr};
     Ipv4ConnMap *m_pUdpConnMap {nullptr};
-    std::map<addr_ipv4, int> m_dest_to_socket;
+    std::map<struct addr_ipv4, int> m_dest_to_socket;
+    std::list<std::pair<struct addr_ipv4, int>> m_conns;
+
+    uint32_t m_nMaxConnCnt {32};
 
 private:
     TunConnection(const TunConnection &x) = delete;
