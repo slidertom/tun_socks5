@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sys/types.h>
+#include <string>
 
 struct device;
 
@@ -23,6 +24,7 @@ public:
 
 private:
     struct device *m_pDevice {nullptr};
+    std::string m_sIP;
 
 private:
     Tun(const Tun &x) = delete;
