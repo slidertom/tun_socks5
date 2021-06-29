@@ -56,6 +56,7 @@ Probably dante expects client side port
 during UDP ASSOCIATE request.  
 
 udp packets emulation  
+simply: dig domain (e.g.: dig www.google.com)
 iperf3 (debian: https://packages.debian.org/search?keywords=iperf3)  
 server: iperf3 -s  
 client: iperf3 -u -c client.ip.address -b 1M  
