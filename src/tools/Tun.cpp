@@ -29,7 +29,8 @@ int Tun::Init(const char *sName, const char *sIP)
 		return -3;
 	}
 
-	if (::tuntap_set_ip(m_pDevice, sIP, 24) == -1) {
+	m_sIP = sIP;
+	if (::tuntap_set_ip(m_pDevice, sIP, 31) == -1) {
 		return -4;
 	}
 

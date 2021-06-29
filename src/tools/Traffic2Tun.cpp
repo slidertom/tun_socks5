@@ -2,14 +2,34 @@
 
 #include <iostream>
 #include "console_colors.h"
+#include "str_util.h"
 
-static void call_system(const char *command)
+static void call_system(const char *cmd) noexcept
 {
-    std::cout << CYAN << "$ " << command << RESET << std::endl;
-    system(command);
+    std::cout << CYAN << "$ " << cmd << RESET << std::endl;
+    system(cmd);
 }
 
-void Traffic2Tun::SetUpIpv4()
+// https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
+static std::string exec(const char *cmd) noexcept
+{
+    std::cout << CYAN << "$ " << cmd << RESET << std::endl;
+
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) {
+        return "";
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+
+    std::cout << WHITE << "$ " << result << RESET << std::endl;
+    return result;
+}
+
+void Traffic2Tun::SetUpIpv4() noexcept
 {
     // Enable ip routing. Required if NAT included
     call_system("echo 1 > /proc/sys/net/ipv4/ip_forward");
@@ -51,22 +71,24 @@ void Traffic2Tun::SetUpIpv4()
 }
 
 //https://gist.github.com/rsanden/ba29b8ea7d5d3bd482e717413a745243
-void Traffic2Tun::Start(const char *sProxyIP)
+void Traffic2Tun::Start(const char *sProxyIP, const char *sProxyDev) noexcept
 {
-    call_system("ip route flush cache");
+    ::call_system("ip route flush cache");
 
     //call_system("iptables -t mangle -A OUTPUT -d 192.168.19.138/32 -j RETURN");
 
     //call_system("iptables -t mangle -A OUTPUT -p udp -j MARK --set-mark 1");
     //call_system("ip rule add fwmark 1 table 1");  // forward traffic into "virtual" table if mark 1
 
-    call_system("ip rule add ipproto udp table 1");
+    ::call_system("ip rule add ipproto udp table 1");
 
-    call_system("ip route add default dev tun2sc5 table 1");
+    ::call_system("ip route add default dev tun2sc5 table 1");
     std::string sRouteProxytoEth  = "ip route add ";
                 sRouteProxytoEth += sProxyIP;
-                sRouteProxytoEth += "/32  dev ens33 table 1";
-    call_system(sRouteProxytoEth.c_str());
+                sRouteProxytoEth += "/32  dev ";
+                sRouteProxytoEth += sProxyDev;
+                sRouteProxytoEth += " table 1";
+    ::call_system(sRouteProxytoEth.c_str());
 }
 
 /*
@@ -75,30 +97,47 @@ void Traffic2Tun::Start(const char *sProxyIP)
 # 40000:45000 – Dante UDP portrange
 */
 
-void Traffic2Tun::CleanUp()
+void Traffic2Tun::CleanUp() noexcept
 {
-    call_system("iptables -t nat -F>/dev/null"); // TODO: delete this one
-    call_system("iptables -t mangle -F>/dev/null"); // TODO: delete this one
+    ::call_system("iptables -t nat -F>/dev/null"); // TODO: delete this one
+    ::call_system("iptables -t mangle -F>/dev/null"); // TODO: delete this one
 
-    call_system("iptables -t nat -D POSTROUTING -o ens33   -j MASQUERADE 2>/dev/null");
-    call_system("iptables -t nat -D POSTROUTING -o tun2sc5 -j MASQUERADE 2>/dev/null");
+    ::call_system("iptables -t nat -D POSTROUTING -o ens33   -j MASQUERADE 2>/dev/null");
+    ::call_system("iptables -t nat -D POSTROUTING -o tun2sc5 -j MASQUERADE 2>/dev/null");
     // Allow return traffic
-    call_system("iptables -D INPUT -i ens33   -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null");
-    call_system("iptables -D INPUT -i tun2sc5 -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null");
+    ::call_system("iptables -D INPUT -i ens33   -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null");
+    ::call_system("iptables -D INPUT -i tun2sc5 -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null");
     // Forward everything
-    call_system("iptables -D FORWARD -j ACCEPT 2>/dev/null");
+    ::call_system("iptables -D FORWARD -j ACCEPT 2>/dev/null");
 
-    call_system("iptables -t nat -D POSTROUTING -m mark --mark 1 -j SNAT --to-source 10.0.0.1 2>/dev/null");
+    ::call_system("iptables -t nat -D POSTROUTING -m mark --mark 1 -j SNAT --to-source 10.0.0.1 2>/dev/null");
     //call_system("iptables -t mangle -D OUTPUT -p udp -j MARK --set-mark 1 2>/dev/null");
     /*
     call_system("iptables -t nat -D POSTROUTING -m mark --mark 1 -j SNAT --to-source 10.0.0.1 2>/dev/null");
     call_system("iptables -t mangle -D OUTPUT -p tcp --dport 80 -j MARK --set-mark 1 2>/dev/null");
 
     */
-    call_system("ip rule del ipproto udp table 1 2/dev/null");
-    call_system("ip route del table 1 default via 10.0.0.1 2>/dev/null");
-    call_system("ip rule del fwmark 1 table 1 2>/dev/null");
-    call_system("ip rule del ipproto udp table 1 2>/dev/null");
-    call_system("ip route flush table 1");
-    call_system("ip route flush cache");
+    ::call_system("ip rule del ipproto udp table 1 2/dev/null");
+    ::call_system("ip route del table 1 default via 10.0.0.1 2>/dev/null");
+    ::call_system("ip rule del fwmark 1 table 1 2>/dev/null");
+    ::call_system("ip rule del ipproto udp table 1 2>/dev/null");
+    ::call_system("ip route flush table 1");
+    ::call_system("ip route flush cache");
+}
+
+std::string Traffic2Tun::GetProxyEthName(const char *sProxyIp) noexcept
+{
+    std::string sCmd = "ip route get ";
+                sCmd += sProxyIp;
+
+    const std::string sOutput = ::exec(sCmd.c_str());
+    std::vector<std::string> result;
+    ::str_split_string(sOutput.c_str(), " ", result, false);
+
+    if (result.size() < 5) {
+        std::cerr << RED << "Ethernet device was not found. Output: '" << sOutput << "'" <<  RESET << std::endl;
+        return "";
+    }
+
+    return result[4];
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 class Traffic2Tun final
 {
 public:
@@ -13,8 +15,10 @@ public:
 
 // Static operations
 public:
-    static void SetUpIpv4();
+    static void SetUpIpv4() noexcept;
 
-    static void CleanUp();
-    static void Start(const char *sProxyIP);
+    static std::string GetProxyEthName(const char *sProxyIp) noexcept;
+
+    static void CleanUp() noexcept;
+    static void Start(const char *sProxyIP, const char *sProxyDev) noexcept;
 };

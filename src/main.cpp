@@ -54,8 +54,8 @@ static void SendSockData(int fdSoc)
 	sock_utils::write_data(fdSoc, (const std::byte *)sample_request.c_str(), sample_request.size(), 0);
 
 	constexpr std::size_t reply_buff_size = 2048;
-	std::byte read_buffer_reply[reply_buff_size];
-	sock_utils::read_data(fdSoc, read_buffer_reply, reply_buff_size, 0);
+	char read_buffer_reply[reply_buff_size];
+	sock_utils::read_data(fdSoc, (std::byte *)read_buffer_reply, reply_buff_size, 0);
 	std::cout << "IP addrees:"     << std::endl;
 	std::cout << read_buffer_reply << std::endl;
 }
@@ -113,10 +113,10 @@ int main()
     set_signal(SIGTERM, sigexit);
     set_signal(SIGHUP,  sigexit);
 
-    //const char *sSocs5Server = "212.122.76.241";
+    const char *sSocs5Server = "212.122.76.241";
     //const uint16_t nSocs5Port = 1081;
 
-    const char *sSocs5Server = "192.168.19.142";
+    //const char *sSocs5Server = "192.168.19.142";
     const uint16_t nSocs5Port = 1082;
 
     Tun tun;
@@ -126,10 +126,16 @@ int main()
         return 0;
     }
 
-    std::cout << BOLDMAGENTA << "Tun interface started: " << fdTun << RESET << std::endl;
+    std::cout << GREEN << "Tun interface started: " << fdTun << RESET << std::endl;
     system("echo 0 > /proc/sys/net/ipv4/conf/tun2sc5/rp_filter");
 
-    redirect_traff.Start(sSocs5Server);
+    const std::string sEthName = Traffic2Tun::GetProxyEthName(sSocs5Server);
+    if ( sEthName.empty() ) {
+        return 0;
+    }
+    std::cout << GREEN << "Default ethernet device: " << sEthName << RESET << std::endl;
+
+    redirect_traff.Start(sSocs5Server, sEthName.c_str());
 
 //    {  // Direct socket server test
         const int fdSoc = sock_utils::create_tcp_socket_client(sSocs5Server, nSocs5Port);
@@ -140,7 +146,7 @@ int main()
         std::cout << "Socket has started:" << fdSoc << std::endl;
         socks5_tcp::client_greeting_no_auth(fdSoc);
         SendSockTest(fdSoc);
-   //     SOCKS5::close_connection(fdSoc);
+        sock_utils::close_connection(fdSoc);
  //   }
 
 
@@ -156,7 +162,7 @@ int main()
     }
 
     poll.Add(fdTun, pTunConn);
-    poll.Add(fdSoc, nullptr);
+    //poll.Add(fdSoc, nullptr);
 
     while (!_do_exit)  {
         poll.Wait();
