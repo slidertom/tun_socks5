@@ -45,7 +45,8 @@ boost asio must be used or similar library.
 Utility tested with glider: https://github.com/nadoo/glider  
   
 Download: https://github.com/nadoo/glider/releases  
-or direct link x64 linux: https://github.com/nadoo/glider/releases/download/v0.14.0/glider_0.14.0_linux_amd64.tar.gz
+or direct link  
+https://github.com/nadoo/glider/releases/download/v0.14.0/glider_0.14.0_linux_amd64.tar.gz  
   
 ```sh
 glider -verbose -listen socks5://:1080
