@@ -156,27 +156,3 @@ addr_ipv4 map_udp_packet(const std::byte *buffer, size_t size, Ipv4ConnMap &map_
 
     return dest;
 }
-
-int recvData(int fd, void *data, int len)
-{
-    char *ptr = (char *)data;
-    int total = 0;
-
-    while (len > 0)
-    {
-        int recvd = ::recv(fd, ptr, len, 0);
-        if (recvd < 0) {
-            return -1;
-        }
-
-        if (recvd == 0) {
-            return -1;
-        }
-
-        ptr += recvd;
-        len -= recvd;
-        total -= recvd;
-    }
-
-    return total;
-}
