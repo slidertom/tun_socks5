@@ -33,9 +33,9 @@ private:
     uint16_t       m_udpBindPort;
 
     PollMgr *m_pPollMgr {nullptr};
-    Ipv4ConnMap *m_pUdpConnMap {nullptr};
-    std::map<struct addr_ipv4, int> m_dest_to_socket;
-    std::list<std::pair<struct addr_ipv4, int>> m_conns;
+    Ipv4ConnMap *m_pUdpConnMap {nullptr};                // destination to source
+    std::map<struct addr_ipv4, int> m_dest_to_socket;    // destination to socket (TODO: merge with Ipv4ConnMap? std::tuple/pair)
+    std::list<std::pair<struct addr_ipv4, int>> m_conns; // manage sockets order
 
     uint32_t m_nMaxConnCnt {32};
 

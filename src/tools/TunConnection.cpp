@@ -8,8 +8,6 @@
 #include "PollMgr.h"
 #include "Tun.h"
 
-#include <arpa/inet.h>
-
 TunConnection::TunConnection(Tun *pTun,
                   const char *sSocs5Server, uint16_t nSocs5Port,
                   PollMgr *pPollMgr, Ipv4ConnMap *pUdpConnMap)

@@ -1,12 +1,12 @@
 #include "IPv4.h"
 
+#include "socks5_udp.h"
+#include "console_colors.h"
+
 #include <netinet/udp.h>
 #include <netinet/tcp.h>
 #include <netinet/ip.h>
 #include <arpa/inet.h>
-
-#include "socks5_udp.h"
-#include "console_colors.h"
 
 bool ipv4::is_udp(const std::byte *buffer) noexcept
 {
@@ -14,6 +14,7 @@ bool ipv4::is_udp(const std::byte *buffer) noexcept
 	if (iph->protocol == IPPROTO_UDP) {
         return true;
 	}
+
     return false;
 }
 

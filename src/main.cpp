@@ -101,7 +101,7 @@ int main(int argc, char * argv[])
             std::cout << "Socket start has failed: " << fdSoc << std::endl;
             return 0;
         }
-        std::cout << "Socket has started:" << fdSoc << std::endl;
+        std::cout << "Socket has started: " << fdSoc << std::endl;
         socks5_tcp::client_greeting_no_auth(fdSoc);
         SendSockTest(fdSoc);
         sock_utils::close_connection(fdSoc);
