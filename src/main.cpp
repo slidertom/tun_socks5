@@ -95,8 +95,8 @@ int main(int argc, char * argv[])
     const char *sTunIp  = "10.0.0.1";
     const char *sTunDev = "tun2sc5";
 
-    const char *sSocs5Server = "192.168.19.142";
-    const uint16_t nSocs5Port = 1082;
+    const char *sSocs5Server  = params.first.c_str();
+    const uint16_t nSocs5Port = params.second;
 
     Tun tun;
     const int fdTun = tun.Init(sTunDev, sTunIp);

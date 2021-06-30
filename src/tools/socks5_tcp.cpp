@@ -170,7 +170,7 @@ bool socks5_tcp::get_udp_bind_params(const char *socks5_server, uint16_t socks5_
         std::cout << "Socket start has failed: " << fdSoc << std::endl;
         return false;
     }
-    std::cout << "Socket has started:" << fdSoc << std::endl;
+    std::cout << "Socket has started: " << fdSoc << std::endl;
 
     std::cout << "TCP Socket: ";
     sock_utils::print_socket_info(fdSoc);
