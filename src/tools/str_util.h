@@ -531,5 +531,3 @@ inline bool str_string_to_int32(const char_type *str, int32_t bStream[], size_ty
     }
     return true;
 }
-
-#endif
