@@ -1,6 +1,6 @@
 #pragma once
 
-#include "map"
+#include "unordered_map"
 
 class Connection;
 
@@ -20,7 +20,7 @@ public:
 // Attributes
 private:
     int m_fdPoll;
-    std::map<int, Connection *> m_conns; // just manage by our self
+    std::unordered_map<int, Connection *> m_conns; // just manage by our self
 
 private:
     PollMgr(PollMgr &&x) = delete;

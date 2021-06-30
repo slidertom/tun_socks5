@@ -119,7 +119,7 @@ int sock_utils::create_tcp_socket_client(const char *name, std::uint16_t port) n
     }
 
     addr.sin_addr = *(reinterpret_cast<in_addr*>(hoste->h_addr));
-    addr.sin_port = htons(port);
+    addr.sin_port = ::htons(port);
     addr.sin_family = AF_INET;
     ::memset(addr.sin_zero, 0, 8);
     const int connect_ret = connect(sock_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr));

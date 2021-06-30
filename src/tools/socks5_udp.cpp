@@ -160,16 +160,16 @@ bool socks5_udp::send_packet_to_tun(int fdTun,
     ip.frag_off = htons(0x4000); // Don't fragment
     ip.id       = 0;
     ip.ttl      = 64; // hops
-    ip.tot_len  = htons(pack_size);
+    ip.tot_len  = ::htons(pack_size);
     ip.protocol = IPPROTO_UDP; // 17
     ip.saddr    = daddr;
     ip.daddr    = tun_ip;
 
     // https://www.binarytides.com/raw-udp-sockets-c-linux/
     struct udphdr udp_header;
-    udp_header.source  = htons(dport);
-    udp_header.dest    = htons(sport);
-    udp_header.len     = htons(udplen + payload_size);
+    udp_header.source  = ::htons(dport);
+    udp_header.dest    = ::htons(sport);
+    udp_header.len     = ::htons(udplen + payload_size);
     udp_header.check   = 0;
     // checksum optional
 
@@ -191,7 +191,6 @@ bool socks5_udp::send_packet_to_tun(int fdTun,
     ::memcpy(out_data, buffer, payload_size);
 
     out_data -= (iphdrlen + udplen);
-
 
     std::cout << "SOC => TUN ";
     //ipv4::print_ip_header((unsigned char *)out_data, pack_size);
