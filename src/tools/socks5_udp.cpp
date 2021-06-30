@@ -142,7 +142,7 @@ bool socks5_udp::send_packet_to_tun(int fdTun,
     //std::cout << "Destination address: " << ::inet_ntoa(inaddr);
     //std::cout << ":" << dport << std::endl;
 
-    const uint16_t sport = ::ipv4_conn_map_get_src_port_by_dst(map_dst_to_conn, inaddr.s_addr, dport);
+    const uint16_t sport = ipv4::ipv4_conn_map_get_src_port_by_dst(map_dst_to_conn, inaddr.s_addr, dport);
     if (sport == 0) {
         std::cout << RED << "ERROR: ipv4_conn_map_get_src_port_by_dst failed to find src port.";
         std::cout << RESET << std::endl;
@@ -173,7 +173,7 @@ bool socks5_udp::send_packet_to_tun(int fdTun,
     udp_header.check   = 0;
     // checksum optional
 
-    std::byte *out_data = (std::byte *)::malloc(pack_size); // TODO: pay load size
+    std::byte *out_data = (std::byte *)::malloc(pack_size);
 
     // The checksum should be calculated over the entire header with the checksum
     // field set to 0, so that's what we do

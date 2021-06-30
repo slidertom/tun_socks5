@@ -73,7 +73,7 @@ void TunConnection::HandleEvent()
         }
 
         int fdSocUdp = -1;
-        auto dest = ::map_udp_packet((const std::byte *)m_buffer, nRead, *m_pUdpConnMap);
+        auto dest = ipv4::map_udp_packet((const std::byte *)m_buffer, nRead, *m_pUdpConnMap);
         auto found = m_dest_to_socket.find(dest);
         if (found != m_dest_to_socket.end()) {
             fdSocUdp = found->second;
