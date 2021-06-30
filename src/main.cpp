@@ -2,16 +2,13 @@
 
 #include "tools/Tun.h"
 #include "tools/IPv4.h"
-#include "tools/socks5_udp.h"
 #include "tools/socks5_tcp.h"
 #include "tools/Traffic2Tun.h"
 #include "tools/sock_utils.h"
 #include "tools/console_colors.h"
 #include "tools/PollMgr.h"
 #include "tools/TunConnection.h"
-#include "tools/SocketUdpConnection.h"
-
-#include "stdlib.h"
+#include "tools/str_util.h"
 
 static void SendGetProxyIP(int fdSoc)
 {
@@ -55,11 +52,35 @@ static inline std::pair<std::string, uint16_t> GetParams(int argc, char* argv[])
         return std::make_pair("", 0);
     }
 
+    if (argc > 2) {
+        std:: cout << argv[1] << " " << argv[2] << std::endl;
+        const int port = std::atoi(argv[2]);
+        return std::make_pair(argv[1], port);
+    }
+
+    if (argc == 2) {
+        std::vector<std::string> result;
+        ::str_split_string(argv[1], ":", result, false);
+        if (result.size() == 2) {
+            const int port = std::atoi(result[1].c_str());
+            return std::make_pair(result[0], port);
+        }
+    }
+
     return std::make_pair("", 0);
 }
 
 int main(int argc, char * argv[])
 {
+    auto params = GetParams(argc, argv);
+    if (params.second == 0) {
+        std::cout << "Expected params sample:" << std::endl;
+        std::cout << "$ tunproxy 10.10.10.10 1080" << std::endl;
+        std::cout << "or" << std::endl;
+        std::cout << "$ tunproxy 10.10.10.10:1080" << std::endl;
+        return 0;
+    }
+
     Traffic2Tun::SetUpIpv4();
 
     Traffic2Tun redirect_traff;

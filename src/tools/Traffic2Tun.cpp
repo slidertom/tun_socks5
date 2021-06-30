@@ -1,13 +1,14 @@
 #include "Traffic2Tun.h"
 
-#include <iostream>
 #include "console_colors.h"
 #include "str_util.h"
+
+#include <iostream>
 
 static void call_system(const char *cmd) noexcept
 {
     std::cout << CYAN << "$ " << cmd << RESET << std::endl;
-    system(cmd);
+    ::system(cmd);
 }
 
 // https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
@@ -21,7 +22,7 @@ static std::string exec(const char *cmd) noexcept
     if (!pipe) {
         return "";
     }
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    while (::fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
         result += buffer.data();
     }
 

@@ -2,9 +2,6 @@
 
 #include "../lib/tuntap.h"
 
-#include <cstdio>
-#include <stdlib.h>
-
 #include <arpa/inet.h>
 
 int Tun::Init(const char *sName, const char *sIP)
