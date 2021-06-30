@@ -152,8 +152,7 @@ addr_ipv4 map_udp_packet(const std::byte *buffer, size_t size, Ipv4ConnMap &map_
     source.port = ::ntohs(udph->uh_sport);
     dest.port   = ::ntohs(udph->uh_dport);
 
-    auto src_conn = std::make_pair(source, dest);
-    map_dst_to_conn[dest] = src_conn;
+    map_dst_to_conn[dest] = source;
 
     return dest;
 }

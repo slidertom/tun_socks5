@@ -24,10 +24,9 @@ inline bool operator<(const struct addr_ipv4 &__x, const struct addr_ipv4 &__y) 
     return false;
 }
 
-using Ipv4Conn = std::pair<struct addr_ipv4, struct addr_ipv4>; // src -> dst
 #include "map"
 
-using Ipv4ConnMap = std::map<struct addr_ipv4, Ipv4Conn>;
+using Ipv4ConnMap = std::map<struct addr_ipv4, struct addr_ipv4>;
 inline uint16_t ipv4_conn_map_get_src_port_by_dst(const Ipv4ConnMap &map_dst_to_connn, uint32_t daddr, uint32_t dport)
 {
     addr_ipv4 dst_addr;
@@ -37,7 +36,7 @@ inline uint16_t ipv4_conn_map_get_src_port_by_dst(const Ipv4ConnMap &map_dst_to_
     if ( found == map_dst_to_connn.end() ) {
         return 0;
     }
-    return found->second.first.port;
+    return found->second.port;
 }
 addr_ipv4 map_udp_packet(const std::byte *buffer, size_t size, Ipv4ConnMap &map_dst_to_conn);
 

@@ -11,42 +11,7 @@
 #include "tools/TunConnection.h"
 #include "tools/SocketUdpConnection.h"
 
-// etc/resolv.con change dns server from local
-
 #include "stdlib.h"
-
-// intro: https://backreference.org/2010/03/26/tuntap-interface-tutorial/
-// continue: https://github.com/LaKabane/libtuntap (reused only Linux based impl.)
-
-// https://github.com/txthinking/socks5 ?
-// https://github.com/wtdcode/tun2socks does everything
-// https://github.com/ambrop72/badvpn does everything
-
-// https://www.boost.org/doc/libs/1_66_0/doc/html/boost_asio/reference/ip__udp/socket.html
-// https://www.boost.org/doc/libs/1_66_0/doc/html/boost_asio/reference/ip__tcp/socket.html
-
-// TODO:
-// udp-generator => iperf
-// sever: iperf3 -s
-// iperf3 -u -c client.ip.address -b 1M
-
-// glider
-// https://github.com/nadoo/glider/releases/download/v0.14.0/glider_0.14.0_linux_amd64.tar.gz
-//  ./glider -verbose -listen socks5://:1082
-
-//   Use non-blocking IO.
-
-// ssh -N -D 0.0.0.0:1080 localhost
-// DOES NOT WORK with UDP!!!!
-// constexpr usage
-
-// There is a trick: one must open a normal socket (UDP in this case) and use the ioctl syscall with this socket-file-descriptor
-// and not with the file-descriptor of the TAP-Device but with the ifreq-variable of the TAP-Device.
-// After finish the configuration of the TAP-Device the socket can closed. This trick should be a little bit more highlighted
-// in the description, in my first reading of the source code i do not have seen it.
-
-/* local_ip4 is in network byte address order.*/
-// tshark -i eth0 -f "udp port 1082"
 
 static void SendGetProxyIP(int fdSoc)
 {
