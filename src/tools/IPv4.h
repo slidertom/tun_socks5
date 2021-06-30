@@ -1,7 +1,7 @@
 #pragma once
 
 #include <bits/stdc++.h>
-#include "map"
+#include "unordered_map"
 
 struct addr_ipv4 {
     uint32_t addr;
@@ -19,7 +19,33 @@ inline bool operator<(const struct addr_ipv4 &__x, const struct addr_ipv4 &__y) 
     return false;
 }
 
-using Ipv4ConnMap = std::map<struct addr_ipv4, struct addr_ipv4>;
+inline bool operator==(const struct addr_ipv4 &__x, const struct addr_ipv4 &__y) noexcept {
+    if (__x.addr != __y.addr) {
+        return false;
+    }
+    if (__x.port != __y.port) {
+        return false;
+    }
+    return true;
+}
+
+struct addr_ipv4_hash {
+    std::size_t operator()(const struct addr_ipv4 &p) const {
+        std::size_t h = 0;
+        hash_combine(h, p.addr);
+        hash_combine(h, p.port);
+        return h;
+    }
+
+private:
+    template <class T>
+    static inline void hash_combine(std::size_t &seed, const T &v) {
+        std::hash<T> hasher;
+        seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+};
+
+using Ipv4ConnMap = std::unordered_map<struct addr_ipv4, struct addr_ipv4, struct addr_ipv4_hash>;
 
 namespace ipv4
 {

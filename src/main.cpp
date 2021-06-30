@@ -46,7 +46,7 @@ static void set_signal(int signo, void (*handler)(int))
     sigaction(signo, &sa, NULL);
 }
 
-static inline std::pair<std::string, uint16_t> GetParams(int argc, char* argv[])
+static inline std::pair<std::string, uint16_t> GetParams(int argc, char *argv[])
 {
     if (argc == 0) {
         return std::make_pair("", 0);
