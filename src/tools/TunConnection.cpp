@@ -62,7 +62,6 @@ void TunConnection::HandleEvent()
                     m_dest_to_socket.erase(found);
                 }
                 m_pPollMgr->Delete(it_first->second);
-                m_conns.erase(it_first);
             }
             {
                 auto found = m_pUdpConnMap->find(it_first->first);
@@ -70,6 +69,7 @@ void TunConnection::HandleEvent()
                     m_pUdpConnMap->erase(found);
                 }
             }
+            m_conns.erase(it_first);
         }
 
         int fdSocUdp = -1;
