@@ -35,8 +35,8 @@ https://www.ulduzsoft.com/2014/01/select-poll-epoll-practical-difference-for-sys
 
 io_uring would be nice to review: (required kernel version 5.1)
 https://blogs.oracle.com/linux/post/an-introduction-to-the-io_uring-asynchronous-io-framework  
-open discussion: io_uring some tests are horribly slow:
-https://github.com/axboe/liburing/issues/189
+open discussion: io_uring some tests are horribly slow:  
+https://github.com/axboe/liburing/issues/189  
 
 ### Protocols
 udp ipv4 is only supported.
