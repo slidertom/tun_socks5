@@ -9,8 +9,8 @@
 #include "Tun.h"
 
 TunConnection::TunConnection(Tun *pTun,
-                  const char *sSocs5Server, uint16_t nSocs5Port,
-                  PollMgr *pPollMgr, Ipv4ConnMap *pUdpConnMap)
+                             const char *sSocs5Server, uint16_t nSocs5Port,
+                             PollMgr *pPollMgr, Ipv4ConnMap *pUdpConnMap)
 : m_pTun(pTun), m_pPollMgr(pPollMgr), m_pUdpConnMap(pUdpConnMap)
 {
     if ( !socks5_tcp::get_udp_bind_params(sSocs5Server, nSocs5Port, m_fdSoc, m_udpBindAddr, m_udpBindPort) ) {
@@ -92,7 +92,10 @@ void TunConnection::HandleEvent()
         socks5_udp::send_packet_to_socket(fdSocUdp, (const std::byte *)m_buffer, nRead);
     }
     else {
-        // TODO: get TCP payload
+        // TODO: 
+        // detect protocol
+        // IF TCP:
+        // get TCP payload
         // get port and destination
         // const int fdSoc = sock_utils::create_tcp_socket_client(sSocs5Server, nSocs5Port);
         // socks5_tcp::client_greeting_no_auth(fdSoc);
