@@ -65,13 +65,13 @@ void PollMgr::Delete(int fd) noexcept
 	const int nRet = ::epoll_ctl(m_fdPoll, EPOLL_CTL_DEL, fd, nullptr);
 
 	if (nRet == ENOENT) {
-        std::cout << RED << "fd is not found: " << fd << RESET << std::endl;
-        return;
+            std::cout << RED << "fd is not found: " << fd << RESET << std::endl;
+            return;
 	}
 
 	if (nRet < 0) {
-        std::cout << RED << "ERROR: epoll_ctl with param EPOLL_CTL_DEL have failed. " << RESET << std::endl;
-        return;
+            std::cout << RED << "ERROR: epoll_ctl with param EPOLL_CTL_DEL have failed. " << RESET << std::endl;
+            return;
 	}
 
     auto found = m_conns.find(fd);
