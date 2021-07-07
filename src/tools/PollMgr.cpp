@@ -40,7 +40,7 @@ bool PollMgr::Add(int fd, Connection *pConn) noexcept
     ev.events  = EPOLLIN|EPOLLRDHUP|EPOLLERR;
     ev.data.fd = fd;
     // Associate the connection class instance with the event. You can associate anything
-    // you want, epoll does not use this information. We store a connection class pointer, pConnection1
+    // you want, epoll does not use this information. We store a connection class pointer, pConn
     ev.data.ptr = pConn ? pConn : nullptr;
 
     const int nRet = ::epoll_ctl(m_fdPoll, EPOLL_CTL_ADD, fd, &ev);
@@ -76,6 +76,7 @@ void PollMgr::Delete(int fd) noexcept
 
     auto found = m_conns.find(fd);
     if (found != m_conns.end()) {
+        delete found->second;
         m_conns.erase(found);
     }
 }
