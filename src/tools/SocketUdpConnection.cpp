@@ -7,7 +7,12 @@
 SocketUdpConnection::SocketUdpConnection(Tun *pTun, int fdSoc, Ipv4ConnMap *pUdpConnMap)
 : m_pTun(pTun), m_fdSoc(fdSoc), m_pUdpConnMap(pUdpConnMap)
 {
-    m_tun_ip= m_pTun->GetIPAddr();
+    m_tun_ip = m_pTun->GetIPAddr();
+}
+
+SocketUdpConnection::~SocketUdpConnection()
+{
+    sock_utils::close_connection(m_fdSoc);
 }
 
 void SocketUdpConnection::HandleEvent()

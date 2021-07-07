@@ -9,7 +9,7 @@ class SocketUdpConnection final : public Connection
 {
 public:
     SocketUdpConnection(Tun *pTun, int fdSoc, Ipv4ConnMap *pUdpConnMap);
-    virtual ~SocketUdpConnection() { }
+    virtual ~SocketUdpConnection();
 
 public:
     virtual void HandleEvent() override final;
