@@ -44,6 +44,7 @@ void Traffic2Tun::Start(const char *sTunDev,
     //call_system("iptables -t mangle -A OUTPUT -p udp -j MARK --set-mark 1");
     //call_system("ip rule add fwmark 1 table 1");  // forward traffic into "virtual" table if mark 1
     ::call_system("ip rule add ipproto udp table 1");
+    ::call_system("ip rule add ipproto tcp dport 80 table 1");
     ::call_system(::FormatStr("ip route add default dev %s table 1", sTunDev).c_str());
     const std::string sRouteProxytoEth  = ::FormatStr("ip route add %s/32  dev %s table 1", sProxyIP, sProxyDev);
     ::call_system(sRouteProxytoEth.c_str());

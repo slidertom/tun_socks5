@@ -40,6 +40,9 @@ private:
 
     uint32_t m_nMaxConnCnt {32};
 
+    std::string m_sSocs5Server; // required for TCP connections
+    uint16_t m_nSocs5Port;      // required for TCP connections
+
 private:
     TunConnection(const TunConnection &x) = delete;
     TunConnection(TunConnection &&x) = delete;

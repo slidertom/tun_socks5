@@ -6,6 +6,10 @@
 
 #include <arpa/inet.h>
 
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
+#include <unistd.h>
+
 #include <vector>
 #include <stdio.h>
 
@@ -228,3 +232,138 @@ int socks5_tcp::tcp_client_connection_request(int fdSoc,
 	return -1;
 }
 
+int socks5_tcp::tcp_client_connection_request(int fdSoc,
+                                              const std::uint32_t dst_addr,
+                                              const std::uint16_t dst_port) noexcept
+{
+    std::uint8_t *ipv4_buffer = (std::uint8_t *)&dst_addr;
+
+    std::vector<std::byte> client_connection_request = {
+		static_cast<std::byte>(ESOCKS5_DEFAULTS::VERSION),
+		static_cast<std::byte>(ESOCKS5_CONNECTION_CMD::TCP_STREAM),
+		static_cast<std::byte>(ESOCKS5_DEFAULTS::RSV),
+		static_cast<std::byte>(ESOCKS5_ADDR_TYPE::IPv4),
+		static_cast<std::byte>(ipv4_buffer[0]),
+		static_cast<std::byte>(ipv4_buffer[1]),
+		static_cast<std::byte>(ipv4_buffer[2]),
+		static_cast<std::byte>(ipv4_buffer[3]),
+	};
+	client_connection_request.push_back(static_cast<std::byte>(dst_port>>8));
+	client_connection_request.push_back(static_cast<std::byte>(dst_port));
+
+	const int write_ret = sock_utils::write_data(fdSoc, client_connection_request.data(), client_connection_request.size(), 0);
+	if (write_ret < 0) {
+        return -1;
+	}
+
+	constexpr std::size_t reply_bytes = 1 + 1 + 1 + 1 + (1 + 4) + 2;
+	std::vector<std::byte> server_response(reply_bytes);
+	const int read_ret = sock_utils::read_data(fdSoc, server_response.data(), server_response.size(), 0);
+	if (read_ret < 0) {
+        return -1;
+	}
+
+	if ( ::socks5_check_server_response(server_response) ) {
+		return 0;
+	}
+
+	return -1;
+}
+
+static uint16_t inet_csum(const void *buf, size_t hdr_len)
+{
+    unsigned long sum = 0;
+    const uint16_t *ip1;
+
+    ip1 = (const uint16_t *)buf;
+    while (hdr_len > 1) {
+        sum += *ip1++;
+        if (sum & 0x80000000)
+          sum = (sum & 0xFFFF) + (sum >> 16);
+        hdr_len -= 2;
+    }
+
+    while (sum >> 16)
+    sum = (sum & 0xFFFF) + (sum >> 16);
+
+    return(~sum);
+}
+
+bool socks5_tcp::send_packet_to_tun(int fdTun,
+                                    const std::byte *buffer, size_t size,
+                                    uint32_t tun_ip,
+                                    uint32_t saddr,
+                                    uint16_t dport,
+                                    const Ipv4ConnMap &map_dst_to_conn) noexcept
+{
+    size_t payload_size = size;
+
+    /*
+    struct in_addr inaddr;
+    inaddr.s_addr = daddr;
+    //std::cout << "Destination address: " << ::inet_ntoa(inaddr);
+    //std::cout << ":" << dport << std::endl;
+
+    const uint16_t sport = ipv4::ipv4_conn_map_get_src_port_by_dst(map_dst_to_conn, inaddr.s_addr, dport);
+    if (sport == 0) {
+        std::cout << RED << "ERROR: ipv4_conn_map_get_src_port_by_dst failed to find src port.";
+        std::cout << RESET << std::endl;
+        return false;
+    }
+    */
+
+    constexpr unsigned short iphdrlen  = sizeof(struct iphdr);
+    constexpr unsigned short tcphdrlen = sizeof(struct tcphdr);
+    const size_t pack_size = iphdrlen + tcphdrlen + payload_size;
+
+    struct iphdr ip;
+    ip.ihl      = 5;
+    ip.version  = 4;
+    ip.tos      = 0x0;
+    ip.frag_off = htons(0x4000); // Don't fragment
+    ip.id       = 0;
+    ip.ttl      = 64; // hops
+    ip.tot_len  = ::htons(pack_size);
+    ip.protocol = IPPROTO_TCP;
+    ip.saddr    = saddr;
+    ip.daddr    = tun_ip;
+
+    struct tcphdr tcp;
+    tcp.th_sport = htons(80);
+    tcp.th_dport = dport;
+    tcp.th_seq   = htonl(1);
+    tcp.th_ack   = 0;
+    tcp.th_off   = 5;
+    //tcp.syn = 1;
+    //tcp.ack = 0;
+    //tcp.th_win = htons(32767);
+    tcp.check = 0; // Done by kernel
+    tcp.urg_ptr = 0;
+
+    std::byte *out_data = (std::byte *)::malloc(pack_size);
+
+    // The checksum should be calculated over the entire header with the checksum
+    // field set to 0, so that's what we do
+    ip.check    = 0;
+    ip.check    = ::inet_csum(&ip, sizeof(struct iphdr));
+
+    ::memcpy(out_data, &ip, iphdrlen);
+    out_data += iphdrlen;
+
+    ::memcpy(out_data, &tcp, tcphdrlen);
+    out_data += tcphdrlen;
+
+    ::memcpy(out_data, buffer, payload_size);
+
+    out_data -= (iphdrlen + tcphdrlen);
+
+    //std::cout << "SOC => TUN ";
+    //ipv4::print_ip_header((unsigned char *)out_data, pack_size);
+    //ipv4::print_udp_packet(out_data, pack_size);
+
+    const int nRet = ::write(fdTun, out_data, pack_size);
+
+	::free(out_data);
+
+	return nRet != -1;
+}
