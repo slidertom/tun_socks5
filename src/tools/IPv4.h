@@ -50,6 +50,8 @@ using Ipv4ConnMap = std::unordered_map<struct addr_ipv4, struct addr_ipv4, struc
 namespace ipv4
 {
     bool is_udp(const std::byte *buffer) noexcept;
+    bool is_tcp(const std::byte *buffer) noexcept;
+
     void print_udp_packet(const std::byte *buffer, size_t size) noexcept;
     void print_ip_header(const std::byte *buffer, size_t size) noexcept;
 

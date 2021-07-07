@@ -18,6 +18,17 @@ bool ipv4::is_udp(const std::byte *buffer) noexcept
     return false;
 }
 
+bool ipv4::is_tcp(const std::byte *buffer) noexcept
+{
+    struct iphdr *iph = (struct iphdr *)buffer;
+	if (iph->protocol == IPPROTO_TCP) {
+        return true;
+	}
+
+    return false;
+}
+
+
 // https://github.com/joshlong/interesting-native-code-examples/blob/master/packet_sniffer.c
 /*
 static void PrintData(unsigned char *data, size_t Size)
@@ -78,8 +89,8 @@ void ipv4::print_ip_header(const std::byte *buffer, size_t size) noexcept
 	std::cout << "   |-IP Header Length  : " << (unsigned int)iph->ihl << " DWORDS or ";
                                                  std::cout << ((unsigned int)(iph->ihl))*4 << " Bytes" << std::endl;
 	std::cout << "   |-Type Of Service   : " << (unsigned int)iph->tos << std::endl;
-	std::cout << "   |-IP Total Length   : " << ntohs(iph->tot_len) << "Bytes(Size of Packet)" << std::endl;
-	std::cout << "   |-Identification    : " << ntohs(iph->id)               << std::endl;
+	std::cout << "   |-IP Total Length   : " << ::ntohs(iph->tot_len) << "Bytes(Size of Packet)" << std::endl;
+	std::cout << "   |-Identification    : " << ::ntohs(iph->id)               << std::endl;
 	std::cout << "   |-TTL               : " << (unsigned int)iph->ttl       << std::endl;
 	std::cout << "   |-Protocol          : " << (unsigned int)iph->protocol  << std::endl;
 	std::cout << "   |-Checksum          : " << ::ntohs(iph->check)          << std::endl;
