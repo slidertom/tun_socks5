@@ -6,8 +6,13 @@ into socks5 server using locally created tun interface.
 
 NO AUTHENTICATION is supported only.
   
+UDP support:
 https://www.youtube.com/watch?v=_Jp1kidmo-Q  
 
+TCP support initial impl (handshake and get data (payload from socks5 server):  
+https://www.youtube.com/watch?v=MIfBcPYrlTU  
+  
+  
 ### Dependencies
 
 cmake or codeblocks  
