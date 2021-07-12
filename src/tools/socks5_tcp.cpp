@@ -289,6 +289,55 @@ static uint16_t inet_csum(const void *buf, size_t hdr_len)
     return(~sum);
 }
 
+struct pseudoheader {
+	uint32_t src;
+	uint32_t dst;
+	uint8_t zero;
+	uint8_t proto;
+	uint16_t length;
+};
+
+unsigned short
+checksum(void *buf, int len)
+{
+	int i;
+	unsigned short *data;
+	unsigned int sum;
+
+	sum = 0;
+	data = (unsigned short *)buf;
+	for (i = 0; i < len - 1; i += 2)
+	{
+		sum += *data;
+		data++;
+	}
+
+	if (len & 1)
+		sum += ((unsigned char*)buf)[i];
+
+	while (sum >> 16) sum = (sum & 0xFFFF) + (sum >> 16);
+
+	return ~sum;
+}
+
+unsigned short
+tcp_checksum(struct iphdr *iphdr, struct tcphdr *tcphdr)
+{
+	char buf[sizeof(struct pseudoheader) + sizeof(struct tcphdr)];
+	struct pseudoheader *phdr;
+
+	phdr = (struct pseudoheader *)buf;
+	phdr->src = iphdr->saddr;
+	phdr->dst = iphdr->daddr;
+	phdr->zero = 0;
+	phdr->proto = IPPROTO_TCP;
+	phdr->length = htons(sizeof(struct tcphdr));
+
+	memcpy(&buf[sizeof(struct pseudoheader)], tcphdr, sizeof(struct tcphdr));
+
+	return checksum(buf, sizeof(struct pseudoheader) + sizeof(struct tcphdr));
+}
+
 bool socks5_tcp::send_packet_to_tun(int fdTun,
                                     const std::byte *buffer, size_t size,
                                     uint32_t tun_ip,
@@ -337,7 +386,7 @@ bool socks5_tcp::send_packet_to_tun(int fdTun,
     //tcp.syn = 1;
     //tcp.ack = 0;
     //tcp.th_win = htons(32767);
-    tcp.check = 0; // Done by kernel
+    tcp.check   = 0; // Done by kernel
     tcp.urg_ptr = 0;
 
     std::byte *out_data = (std::byte *)::malloc(pack_size);
@@ -346,6 +395,8 @@ bool socks5_tcp::send_packet_to_tun(int fdTun,
     // field set to 0, so that's what we do
     ip.check    = 0;
     ip.check    = ::inet_csum(&ip, sizeof(struct iphdr));
+
+    tcp.check   = tcp_checksum(&ip, &tcp);
 
     ::memcpy(out_data, &ip, iphdrlen);
     out_data += iphdrlen;
@@ -869,54 +920,7 @@ int send_packet(struct packet_info* packetinfo, int fdSoc, uint16_t window,
     }
 }
 
-struct pseudoheader {
-	uint32_t src;
-	uint32_t dst;
-	uint8_t zero;
-	uint8_t proto;
-	uint16_t length;
-};
 
-unsigned short
-checksum(void *buf, int len)
-{
-	int i;
-	unsigned short *data;
-	unsigned int sum;
-
-	sum = 0;
-	data = (unsigned short *)buf;
-	for (i = 0; i < len - 1; i += 2)
-	{
-		sum += *data;
-		data++;
-	}
-
-	if (len & 1)
-		sum += ((unsigned char*)buf)[i];
-
-	while (sum >> 16) sum = (sum & 0xFFFF) + (sum >> 16);
-
-	return ~sum;
-}
-
-unsigned short
-tcp_checksum(struct iphdr *iphdr, struct tcphdr *tcphdr)
-{
-	char buf[sizeof(struct pseudoheader) + sizeof(struct tcphdr)];
-	struct pseudoheader *phdr;
-
-	phdr = (struct pseudoheader *)buf;
-	phdr->src = iphdr->saddr;
-	phdr->dst = iphdr->daddr;
-	phdr->zero = 0;
-	phdr->proto = IPPROTO_TCP;
-	phdr->length = htons(sizeof(struct tcphdr));
-
-	memcpy(&buf[sizeof(struct pseudoheader)], tcphdr, sizeof(struct tcphdr));
-
-	return checksum(buf, sizeof(struct pseudoheader) + sizeof(struct tcphdr));
-}
 #define PACKET_TTL 128
 #define PACKET_WINDOW_SIZE 256
 char *generate_tcp(struct iphdr *src_iphdr, struct tcphdr *src_tcphdr, int rst)

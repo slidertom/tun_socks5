@@ -21,6 +21,9 @@ private:
     uint32_t m_tun_ip {0};
     Ipv4ConnMap *m_pUdpConnMap {nullptr};
 
+    uint16_t m_raw_port; // source
+    uint32_t m_addr; // target
+
 private:
     SocketTcpConnection(SocketTcpConnection &&x) = delete;
     SocketTcpConnection(const SocketTcpConnection &x) = delete;

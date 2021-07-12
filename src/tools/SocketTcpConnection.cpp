@@ -21,6 +21,12 @@ SocketTcpConnection::SocketTcpConnection(Tun *pTun, int fdSoc, Ipv4ConnMap *pUdp
     //socks5_tcp::recv_conn_req(fdTun, nRead, (char *)m_buffer);
     //socks5_tcp::send_sync_to_tun(fdTun, m_buffer, nRead);  //server (fdSoc) -> sync, ack
     socks5_tcp::send_sync_ack_to_tun(fdTun, pBuffer, nRead);
+
+    struct iphdr *iph = (struct iphdr *)pBuffer;
+    const unsigned short iphdrlen = iph->ihl*4;
+    struct tcphdr *tcph = (struct tcphdr *)(pBuffer + iphdrlen);
+    m_addr     = iph->daddr;
+    m_raw_port = tcph->source;
 }
 
 SocketTcpConnection::~SocketTcpConnection()
@@ -39,13 +45,14 @@ void SocketTcpConnection::HandleEvent()
     }
     ipv4::print_data((unsigned char *)m_buffer, nRead);
     // TODO create TCP packet (this is payload info)
+    //const int fdTun = m_pTun->GetFd();
+    // TODO - unfinished
     /*
-    const int fdTun = m_pTun->GetFd();
     socks5_tcp::send_packet_to_tun(fdTun,
                                    m_buffer, nRead,
                                    m_tun_ip,
-                                   iph->daddr,
-                                   tcph->th_sport,
+                                   m_addr,
+                                   m_raw_port,
                                   *m_pUdpConnMap);
                                   */
 }
