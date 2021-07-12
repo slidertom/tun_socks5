@@ -5,6 +5,11 @@
 #include "Tun.h"
 #include "console_colors.h"
 
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
+#include <unistd.h>
+
+
 SocketTcpConnection::SocketTcpConnection(Tun *pTun, int fdSoc, Ipv4ConnMap *pUdpConnMap,
                                          std::byte *pBuffer, int nRead)
 : m_pTun(pTun), m_fdSoc(fdSoc), m_pUdpConnMap(pUdpConnMap)
@@ -28,6 +33,18 @@ SocketTcpConnection::~SocketTcpConnection()
 
 void SocketTcpConnection::HandleEvent()
 {
+    const int nRead = sock_utils::read_data(m_fdSoc, m_buffer, sizeof(m_buffer), 0);
+    ipv4::print_ip_header(m_buffer, nRead);
 
+    struct iphdr *iph = (struct iphdr *)m_buffer;
+    const unsigned short iphdrlen = iph->ihl*4;
+    struct tcphdr *tcph = (struct tcphdr *)(m_buffer + iphdrlen);
 
+    const int fdTun = m_pTun->GetFd();
+    socks5_tcp::send_packet_to_tun(fdTun,
+                                   m_buffer, nRead,
+                                   m_tun_ip,
+                                   iph->daddr,
+                                   tcph->th_sport,
+                                  *m_pUdpConnMap);
 }

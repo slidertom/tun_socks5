@@ -47,6 +47,9 @@ private:
     uint16_t m_nSocs5Port;      // required for TCP connections
 
 private:
+    void ConnGC();
+
+private:
     TunConnection(const TunConnection &x) = delete;
     TunConnection(TunConnection &&x) = delete;
     TunConnection &operator=(const TunConnection &x) = delete;

@@ -12,7 +12,7 @@ public:
 
 public:
     virtual void HandleEvent() = 0;
-    virtual bool SendPacket(const std::byte *buffer, size_t size) { return false; }
+    virtual bool SendPacket(const std::byte *buffer, size_t size) { return false; } // TODO: Currently is not integrated!
 
 protected:
     std::byte m_buffer[65535];

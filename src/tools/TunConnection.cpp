@@ -9,8 +9,9 @@
 #include "PollMgr.h"
 #include "Tun.h"
 
-#include <netinet/ip.h>
-#include <netinet/tcp.h>
+#include <netinet/ip.h> // TODO: remove/wrap
+#include <netinet/tcp.h> // TODO: remove/wrap
+#include <unistd.h> // TODO: remove/wrap
 
 TunConnection::TunConnection(Tun *pTun,
                   const char *sSocs5Server, uint16_t nSocs5Port,
@@ -37,7 +38,39 @@ TunConnection::~TunConnection()
         }
     }
 }
-#include <unistd.h>
+
+void TunConnection::ConnGC()
+{
+    // connections "gc"
+    size_t conn_cnt = m_dest_to_socket.size() + m_dest_to_tcp_socket.size(); // TODO
+    if (conn_cnt >= m_nMaxConnCnt) {
+        auto it_first = m_conns.begin();
+        {
+            {   // UDP duplication TODO
+                auto found = m_dest_to_socket.find(it_first->first);
+                if (found != m_dest_to_socket.end()) {
+                    m_dest_to_socket.erase(found);
+                }
+            }
+            {   // TCP duplication TODO
+                auto found = m_dest_to_tcp_socket.find(it_first->first);
+                if (found != m_dest_to_tcp_socket.end()) {
+                    m_dest_to_tcp_socket.erase(found);
+                }
+            }
+
+            m_pPollMgr->Delete(it_first->second);
+        }
+        {
+            auto found = m_pUdpConnMap->find(it_first->first);
+            if (found != m_pUdpConnMap->end()) {
+                m_pUdpConnMap->erase(found);
+            }
+        }
+        m_conns.erase(it_first);
+    }
+}
+
 void TunConnection::HandleEvent()
 {
     const int nRead = m_pTun->Read((char *)m_buffer, sizeof(m_buffer));
@@ -50,25 +83,7 @@ void TunConnection::HandleEvent()
         std::cout << "TUN => SOC ";
         ipv4::print_udp_packet(m_buffer, nRead);
 
-        // connections "gc"
-        size_t conn_cnt = m_dest_to_socket.size();
-        if (conn_cnt >= m_nMaxConnCnt) {
-            auto it_first = m_conns.begin();
-            {
-                auto found = m_dest_to_socket.find(it_first->first);
-                if (found != m_dest_to_socket.end()) {
-                    m_dest_to_socket.erase(found);
-                }
-                m_pPollMgr->Delete(it_first->second);
-            }
-            {
-                auto found = m_pUdpConnMap->find(it_first->first);
-                if (found != m_pUdpConnMap->end()) {
-                    m_pUdpConnMap->erase(found);
-                }
-            }
-            m_conns.erase(it_first);
-        }
+        ConnGC();
 
         int fdSocUdp = -1;
         auto dest = ipv4::map_udp_packet((const std::byte *)m_buffer, nRead, *m_pUdpConnMap);
@@ -96,49 +111,35 @@ void TunConnection::HandleEvent()
         struct iphdr *iph = (struct iphdr *)m_buffer;
         const unsigned short iphdrlen = iph->ihl*4;
         struct tcphdr *tcph = (struct tcphdr *)(m_buffer + iphdrlen);
-        const int fdTun = m_pTun->GetFd();
 
-        static int fdSoc = -1;
         // client -> application must get 3-way handshake to retrieve exact request
         // client (fdTun) -> sync
         //      server (fdSoc) -> sync, ack
         // client (fdTun) -> ack
         // client (get)
-        if (fdSoc == -1) {
-            fdSoc = sock_utils::create_tcp_socket_client(m_sSocs5Server.c_str(), m_nSocs5Port);
+        struct addr_ipv4 dest;
+        dest.addr = iph->daddr;
+        dest.port = 80; // TODO
+        auto found = m_dest_to_tcp_socket.find(dest);
+        if (found == m_dest_to_tcp_socket.end()) {
+            const int fdSoc = sock_utils::create_tcp_socket_client(m_sSocs5Server.c_str(), m_nSocs5Port);
             socks5_tcp::client_greeting_no_auth(fdSoc);
-
-            struct sockaddr_in dest;
-            ::memset(&dest, 0, sizeof(dest));
             socks5_tcp::tcp_client_connection_request(fdSoc, iph->daddr, 80);
             m_pPollMgr->Add(fdSoc, new SocketTcpConnection(m_pTun, fdSoc, m_pUdpConnMap, m_buffer, nRead));
+            m_conns.push_back(std::make_pair(dest, fdSoc));
+            m_dest_to_tcp_socket[dest] = fdSoc;
             return;
         }
-
-        const size_t payload_size = (nRead - tcph->doff*4 - iphdrlen);
-        if (payload_size == 0) { // sync, ack
-            //socks5_tcp::send_sync_to_tun(fdTun, m_buffer, nRead); // do send ack
-            //socks5_tcp::send_sync_ack_to_tun(fdTun, m_buffer, nRead);
-            return; // ignore ack
+        else {
+            const int fdSoc = found->second;
+            const size_t payload_size = (nRead - tcph->doff*4 - iphdrlen);
+            if (payload_size == 0) { // sync, ack
+                //socks5_tcp::send_sync_to_tun(fdTun, m_buffer, nRead); // do send ack
+                //socks5_tcp::send_sync_ack_to_tun(fdTun, m_buffer, nRead);
+                return; // ignore ack
+            }
+            sock_utils::write_data(fdSoc,(const std::byte *)m_buffer + iphdrlen + tcph->doff*4, payload_size, 0);
         }
-
-        sock_utils::write_data(fdSoc,(const std::byte *)m_buffer + iphdrlen + tcph->doff*4, payload_size, 0);
-
-        constexpr std::size_t reply_buff_size = 65535;
-        char read_buffer_reply[reply_buff_size];
-        int size = sock_utils::read_data(fdSoc, (std::byte *)read_buffer_reply, reply_buff_size, 0);
-        ipv4::print_ip_header((std::byte *)read_buffer_reply, reply_buff_size);
-
-        //const int nRet = ::write(fdTun, read_buffer_reply, reply_buff_size);
-
-        socks5_tcp::send_packet_to_tun(fdTun,
-                                       m_buffer, nRead,
-                                       m_pTun->GetIPAddr(),
-                                       iph->daddr,
-                                       tcph->th_sport,
-                                       *m_pUdpConnMap);
-
-        //sock_utils::close_connection(fdSoc);
     }
     else {
 
