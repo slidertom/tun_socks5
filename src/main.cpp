@@ -10,6 +10,8 @@
 #include "tools/TunConnection.h"
 #include "tools/str_util.h"
 
+// netcat -u <host> <port>
+// netcat -u 8.8.8.8 53
 static void SendGetProxyIP(int fdSoc)
 {
 	const std::string sample_request = "GET /ip HTTP/1.1\r\nHost: ipinfo.io\r\nUser-Agent: curl/7.65.2\r\n\r\n";
@@ -107,6 +109,7 @@ int main(int argc, char * argv[])
 
     std::cout << GREEN << "Tun interface started: " << fdTun << RESET << std::endl;
     system("echo 0 > /proc/sys/net/ipv4/conf/tun2sc5/rp_filter");
+    //echo "3" > /proc/sys/net/ipv4/tcp_fastopen
 
     const std::string sEthName = Traffic2Tun::GetProxyEthName(sSocs5Server);
     if ( sEthName.empty() ) {
