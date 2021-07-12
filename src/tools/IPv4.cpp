@@ -31,9 +31,9 @@ bool ipv4::is_tcp(const std::byte *buffer) noexcept
 
 // https://github.com/joshlong/interesting-native-code-examples/blob/master/packet_sniffer.c
 
-static void PrintData(unsigned char *data, size_t Size)
+void ipv4::print_data(unsigned char *data, size_t size) noexcept
 {
-	for (size_t i = 0; i < Size; ++i) {
+	for (size_t i = 0; i < size; ++i) {
 		if (i != 0 && i%16 == 0) {  // if one line of hex printing is complete...
 			std::cout << "         ";
 			for (size_t j = i-16; j < i; ++j) {
@@ -53,7 +53,7 @@ static void PrintData(unsigned char *data, size_t Size)
 
         std::cout << (unsigned int)data[i];
 
-		if (i == Size - 1) { // print the last spaces
+		if (i == size - 1) { // print the last spaces
 			for (size_t j = 0; j < 15-i%16; ++j) {
                 std::cout << "   "; // extra spaces
 			}

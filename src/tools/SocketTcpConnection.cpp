@@ -34,6 +34,9 @@ SocketTcpConnection::~SocketTcpConnection()
 void SocketTcpConnection::HandleEvent()
 {
     const int nRead = sock_utils::read_data(m_fdSoc, m_buffer, sizeof(m_buffer), 0);
+    if (nRead == 0) {
+        return; // TODO
+    }
     ipv4::print_ip_header(m_buffer, nRead);
 
     struct iphdr *iph = (struct iphdr *)m_buffer;

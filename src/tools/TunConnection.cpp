@@ -44,7 +44,7 @@ void TunConnection::ConnGC()
     // connections "gc"
     size_t conn_cnt = m_dest_to_socket.size() + m_dest_to_tcp_socket.size(); // TODO
     if (conn_cnt >= m_nMaxConnCnt) {
-        auto it_first = m_conns.begin();
+        auto it_first = m_conns.begin(); // TODO: sort by access time
         {
             {   // UDP duplication TODO
                 auto found = m_dest_to_socket.find(it_first->first);
@@ -107,6 +107,7 @@ void TunConnection::HandleEvent()
     else if ( ipv4::is_tcp(m_buffer) )
     {
         ipv4::print_ip_header(m_buffer, nRead);
+        ConnGC();
 
         struct iphdr *iph = (struct iphdr *)m_buffer;
         const unsigned short iphdrlen = iph->ihl*4;
@@ -138,7 +139,9 @@ void TunConnection::HandleEvent()
                 //socks5_tcp::send_sync_ack_to_tun(fdTun, m_buffer, nRead);
                 return; // ignore ack
             }
-            sock_utils::write_data(fdSoc,(const std::byte *)m_buffer + iphdrlen + tcph->doff*4, payload_size, 0);
+
+            ipv4::print_data((unsigned char *)m_buffer + iphdrlen + tcph->doff*4, payload_size);
+            sock_utils::write_data(fdSoc, m_buffer + iphdrlen + tcph->doff*4, payload_size, 0);
         }
     }
     else {

@@ -54,6 +54,7 @@ namespace ipv4
 
     void print_udp_packet(const std::byte *buffer, size_t size) noexcept;
     void print_ip_header(const std::byte *buffer, size_t size) noexcept;
+    void print_data(unsigned char *data, size_t size) noexcept;
 
     addr_ipv4 map_udp_packet(const std::byte *buffer, size_t size, Ipv4ConnMap &map_dst_to_conn);
 
