@@ -118,11 +118,11 @@ int sock_utils::create_tcp_socket_client(const char *name, std::uint16_t port) n
         return -2;
     }
 
-    addr.sin_addr = *(reinterpret_cast<in_addr*>(hoste->h_addr));
+    addr.sin_addr = *(reinterpret_cast<struct in_addr *>(hoste->h_addr));
     addr.sin_port = ::htons(port);
     addr.sin_family = AF_INET;
     ::memset(addr.sin_zero, 0, 8);
-    const int connect_ret = connect(sock_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr));
+    const int connect_ret = connect(sock_fd, reinterpret_cast<struct sockaddr *>(&addr), sizeof(struct sockaddr));
     if (connect_ret < 0 ) {
         std::cout << RED << "connect create_tcp_socket_client failed." << RESET << std::endl;
         return -3;
@@ -132,6 +132,7 @@ int sock_utils::create_tcp_socket_client(const char *name, std::uint16_t port) n
     // The option is enabled on a per-application basis by using the setsockopt() subroutine to set the socket option SO_KEEPALIVE to 1.
     // There is no option available to enable keepalive system-wide.
     // Many programs, such as telnetd, provide a way to enable or disable the TCP keepalive via command line arguments or configuration options.
+    /*
     constexpr int keepalive = 1;
     ::setsockopt(sock_fd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
 
@@ -145,6 +146,6 @@ int sock_utils::create_tcp_socket_client(const char *name, std::uint16_t port) n
     // TCP_KEEPCNT: The number of unanswered probes required to force closure of the socket
     constexpr int keepcnt = 8;
     ::setsockopt(sock_fd, SOL_TCP, TCP_KEEPCNT, &keepcnt, sizeof(keepcnt));
-
+    */
     return sock_fd;
 }
