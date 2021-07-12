@@ -37,12 +37,9 @@ void SocketTcpConnection::HandleEvent()
     if (nRead == 0) {
         return; // TODO
     }
-    ipv4::print_ip_header(m_buffer, nRead);
-
-    struct iphdr *iph = (struct iphdr *)m_buffer;
-    const unsigned short iphdrlen = iph->ihl*4;
-    struct tcphdr *tcph = (struct tcphdr *)(m_buffer + iphdrlen);
-
+    ipv4::print_data((unsigned char *)m_buffer, nRead);
+    // TODO create TCP packet (this is payload info)
+    /*
     const int fdTun = m_pTun->GetFd();
     socks5_tcp::send_packet_to_tun(fdTun,
                                    m_buffer, nRead,
@@ -50,4 +47,5 @@ void SocketTcpConnection::HandleEvent()
                                    iph->daddr,
                                    tcph->th_sport,
                                   *m_pUdpConnMap);
+                                  */
 }

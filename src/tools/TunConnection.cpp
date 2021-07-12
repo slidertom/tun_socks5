@@ -106,6 +106,7 @@ void TunConnection::HandleEvent()
     }
     else if ( ipv4::is_tcp(m_buffer) )
     {
+        std::cout << "TUN => SOC ";
         ipv4::print_ip_header(m_buffer, nRead);
         ConnGC();
 
@@ -120,12 +121,12 @@ void TunConnection::HandleEvent()
         // client (get)
         struct addr_ipv4 dest;
         dest.addr = iph->daddr;
-        dest.port = 80; // TODO
+        dest.port = 80; // TODO -> Traffic2Tun
         auto found = m_dest_to_tcp_socket.find(dest);
         if (found == m_dest_to_tcp_socket.end()) {
             const int fdSoc = sock_utils::create_tcp_socket_client(m_sSocs5Server.c_str(), m_nSocs5Port);
             socks5_tcp::client_greeting_no_auth(fdSoc);
-            socks5_tcp::tcp_client_connection_request(fdSoc, iph->daddr, 80);
+            socks5_tcp::tcp_client_connection_request(fdSoc, iph->daddr, 80); // TODO -> Traffic2Tun
             m_pPollMgr->Add(fdSoc, new SocketTcpConnection(m_pTun, fdSoc, m_pUdpConnMap, m_buffer, nRead));
             m_conns.push_back(std::make_pair(dest, fdSoc));
             m_dest_to_tcp_socket[dest] = fdSoc;
@@ -141,7 +142,9 @@ void TunConnection::HandleEvent()
             }
 
             ipv4::print_data((unsigned char *)m_buffer + iphdrlen + tcph->doff*4, payload_size);
-            sock_utils::write_data(fdSoc, m_buffer + iphdrlen + tcph->doff*4, payload_size, 0);
+            if ( !sock_utils::write_data(fdSoc, m_buffer + iphdrlen + tcph->doff*4, payload_size, 0) ) {
+                std::cout << RED << "Error: sock_utils::write_data" << std::endl;
+            }
         }
     }
     else {
