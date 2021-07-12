@@ -23,7 +23,7 @@ TunConnection::TunConnection(Tun *pTun,
         return;
     }
 
-    std::cout << "UDP ADDRESS AND BND.PORT: \t" << inet_ntoa(m_udpBindAddr) << ":" << m_udpBindPort << std::endl;
+    std::cout << "UDP ADDRESS AND BND.PORT: \t" << ::inet_ntoa(m_udpBindAddr) << ":" << m_udpBindPort << std::endl;
     std::cout << "Max parallel udp sockets count: " << m_nMaxConnCnt << std::endl;
 }
 
@@ -43,7 +43,7 @@ TunConnection::~TunConnection()
         }
     }
 }
-
+#include <unistd.h>
 void TunConnection::HandleEvent()
 {
     const int nRead = m_pTun->Read((char *)m_buffer, sizeof(m_buffer));
@@ -96,31 +96,58 @@ void TunConnection::HandleEvent()
     }
     else if ( ipv4::is_tcp(m_buffer) )
     {
+        ipv4::print_ip_header(m_buffer, nRead);
+
         struct iphdr *iph = (struct iphdr *)m_buffer;
         const unsigned short iphdrlen = iph->ihl*4;
-
-        const int fdSoc = sock_utils::create_tcp_socket_client(m_sSocs5Server.c_str(), m_nSocs5Port);
-        socks5_tcp::client_greeting_no_auth(fdSoc);
-
-        struct sockaddr_in dest;
-        ::memset(&dest, 0, sizeof(dest));
-        socks5_tcp::tcp_client_connection_request(fdSoc, iph->daddr, 80);
-
         struct tcphdr *tcph = (struct tcphdr *)(m_buffer + iphdrlen);
-        sock_utils::write_data(fdSoc,(const std::byte *)m_buffer + iphdrlen + tcph->doff*4, (nRead - tcph->doff*4-iph->ihl*4), 0);
+        const int fdTun = m_pTun->GetFd();
+
+        static int fdSoc = -1;
+        // client -> application must get 3-way handshake to retrieve exact request
+        // client (fdTun) -> sync
+        //      server (fdSoc) -> sync, ack
+        // client (fdTun) -> ack
+        // client (get)
+        if (fdSoc == -1) {
+            fdSoc = sock_utils::create_tcp_socket_client(m_sSocs5Server.c_str(), m_nSocs5Port);
+            socks5_tcp::client_greeting_no_auth(fdSoc);
+
+            struct sockaddr_in dest;
+            ::memset(&dest, 0, sizeof(dest));
+            socks5_tcp::tcp_client_connection_request(fdSoc, iph->daddr, 80);
+
+            //socks5_tcp::server_three_way_handshake(tcph->th_sport, fdTun, nRead, (const char *)m_buffer);
+            //socks5_tcp::recv_conn_req(fdTun, nRead, (char *)m_buffer);
+            //socks5_tcp::send_sync_to_tun(fdTun, m_buffer, nRead);  //server (fdSoc) -> sync, ack
+            socks5_tcp::send_sync_ack_to_tun(fdTun, m_buffer, nRead);
+            return;
+        }
+
+        const size_t payload_size = (nRead - tcph->doff*4 - iphdrlen);
+        if (payload_size == 0) { // sync, ack
+            //socks5_tcp::send_sync_to_tun(fdTun, m_buffer, nRead); // do send ack
+            //socks5_tcp::send_sync_ack_to_tun(fdTun, m_buffer, nRead);
+            return; // ignore ack
+        }
+
+        sock_utils::write_data(fdSoc,(const std::byte *)m_buffer + iphdrlen + tcph->doff*4, payload_size, 0);
 
         constexpr std::size_t reply_buff_size = 65535;
         char read_buffer_reply[reply_buff_size];
         int size = sock_utils::read_data(fdSoc, (std::byte *)read_buffer_reply, reply_buff_size, 0);
+        ipv4::print_ip_header((std::byte *)read_buffer_reply, reply_buff_size);
 
-        socks5_tcp::send_packet_to_tun(m_pTun->GetFd(),
-                                       (std::byte *)read_buffer_reply, size,
+        //const int nRet = ::write(fdTun, read_buffer_reply, reply_buff_size);
+
+        socks5_tcp::send_packet_to_tun(fdTun,
+                                       m_buffer, nRead,
                                        m_pTun->GetIPAddr(),
                                        iph->daddr,
                                        tcph->th_sport,
                                        *m_pUdpConnMap);
 
-        sock_utils::close_connection(fdSoc);
+        //sock_utils::close_connection(fdSoc);
     }
     else {
 

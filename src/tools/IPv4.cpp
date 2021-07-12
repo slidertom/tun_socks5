@@ -30,7 +30,7 @@ bool ipv4::is_tcp(const std::byte *buffer) noexcept
 
 
 // https://github.com/joshlong/interesting-native-code-examples/blob/master/packet_sniffer.c
-/*
+
 static void PrintData(unsigned char *data, size_t Size)
 {
 	for (size_t i = 0; i < Size; ++i) {
@@ -70,7 +70,7 @@ static void PrintData(unsigned char *data, size_t Size)
 		}
 	}
 }
-*/
+
 void ipv4::print_ip_header(const std::byte *buffer, size_t size) noexcept
 {
 	struct iphdr *iph = (struct iphdr *)buffer;
@@ -101,13 +101,14 @@ void ipv4::print_ip_header(const std::byte *buffer, size_t size) noexcept
 	/* // TCP
 	const unsigned short iphdrlen = iph->ihl*4;
     std::cout << "IP Header" << std::endl;
-	PrintData(buffer, iphdrlen);
+	PrintData((unsigned char *)buffer, iphdrlen);
 
 	std::cout << "TCP Header" << std::endl;
-	PrintData(buffer + iphdrlen, tcph->doff*4);
+	struct tcphdr *tcph = (struct tcphdr *)(buffer + iphdrlen);
+	PrintData((unsigned char *)buffer + iphdrlen, tcph->doff*4);
 
 	std::cout << "Data Payload" << std::endl;
-	PrintData(buffer + iphdrlen + tcph->doff*4 , (size - tcph->doff*4-iph->ihl*4) );
+	PrintData((unsigned char *)buffer + iphdrlen + tcph->doff*4 , (size - tcph->doff*4-iph->ihl*4) );
     */
 }
 

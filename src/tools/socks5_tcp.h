@@ -27,4 +27,9 @@ namespace socks5_tcp
                             uint32_t saddr,
                             uint16_t dport, // raw
                             const Ipv4ConnMap &map_dst_to_conn) noexcept;
+    void server_three_way_handshake(uint16_t client_port, int socket_fd, int rec_bytes, const char *buffer);
+    int recv_conn_req(int accept_sock, int num_data_recv, char *buffer);
+    bool send_sync_to_tun(int fdTun, std::byte *buffer, size_t size) noexcept;
+    void send_sync_ack_to_tun(int fdTun, std::byte *buffer, size_t size) noexcept;
+    //bool send_ack_to_tun(int fdTun, std::byte *buffer, size_t size) noexcept;
 }
