@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="192.168.19.142:1082" />
+				<Option parameters="192.168.19.144:1082" />
 				<Compiler>
 					<Add option="-g" />
 					<Add option="-std=c++17" />
@@ -53,6 +53,8 @@
 		<Unit filename="tools/IPv4.h" />
 		<Unit filename="tools/PollMgr.cpp" />
 		<Unit filename="tools/PollMgr.h" />
+		<Unit filename="tools/SocketTcpConnection.cpp" />
+		<Unit filename="tools/SocketTcpConnection.h" />
 		<Unit filename="tools/SocketUdpConnection.cpp" />
 		<Unit filename="tools/SocketUdpConnection.h" />
 		<Unit filename="tools/Traffic2Tun.cpp" />

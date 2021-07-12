@@ -3,6 +3,7 @@
 #include "sock_utils.h"
 #include "Tun.h"
 #include "socks5_udp.h"
+#include "console_colors.h"
 
 SocketUdpConnection::SocketUdpConnection(Tun *pTun, int fdSoc, Ipv4ConnMap *pUdpConnMap)
 : m_pTun(pTun), m_fdSoc(fdSoc), m_pUdpConnMap(pUdpConnMap)
@@ -12,7 +13,10 @@ SocketUdpConnection::SocketUdpConnection(Tun *pTun, int fdSoc, Ipv4ConnMap *pUdp
 
 SocketUdpConnection::~SocketUdpConnection()
 {
-    sock_utils::close_connection(m_fdSoc);
+    if (sock_utils::close_connection(m_fdSoc) == -1) {
+        std::cout << RED << "ERROR: SocketUdpConnection::sock_utils::close_connection failed: ";
+        std::cout << m_fdSoc << "." << RESET << std::endl;
+    }
 }
 
 void SocketUdpConnection::HandleEvent()
@@ -26,4 +30,9 @@ void SocketUdpConnection::HandleEvent()
     else {
         std::cout << "Socket closed connection: " << m_fdSoc << std::endl;
     }
+}
+
+bool SocketUdpConnection::SendPacket(const std::byte *buffer, size_t size)
+{
+    return socks5_udp::send_packet_to_socket(m_fdSoc, buffer, size);
 }

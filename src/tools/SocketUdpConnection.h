@@ -13,6 +13,7 @@ public:
 
 public:
     virtual void HandleEvent() override final;
+    virtual bool SendPacket(const std::byte *buffer, size_t size);
 
 private:
     Tun *m_pTun {nullptr};

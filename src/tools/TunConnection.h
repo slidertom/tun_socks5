@@ -38,6 +38,9 @@ private:
     std::unordered_map<struct addr_ipv4, int, struct addr_ipv4_hash> m_dest_to_socket;
     std::list<std::pair<struct addr_ipv4, int>> m_conns; // manage sockets order
 
+    // duplicaction, complete refactoring required
+    std::unordered_map<struct addr_ipv4, int, struct addr_ipv4_hash> m_dest_to_tcp_socket;
+
     uint32_t m_nMaxConnCnt {32};
 
     std::string m_sSocs5Server; // required for TCP connections

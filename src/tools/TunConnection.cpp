@@ -5,6 +5,7 @@
 #include "sock_utils.h"
 #include "socks5_udp.h"
 #include "SocketUdpConnection.h"
+#include "SocketTcpConnection.h"
 #include "PollMgr.h"
 #include "Tun.h"
 
@@ -29,13 +30,6 @@ TunConnection::TunConnection(Tun *pTun,
 
 TunConnection::~TunConnection()
 {
-    for (const auto &elem : m_dest_to_socket) {
-        if (sock_utils::close_connection(elem.second) == -1) {
-            std::cout << RED << "ERROR: sock_utils::close_connection failed: ";
-            std::cout << elem.second << "." << RESET << std::endl;
-        }
-    }
-
     if (this->m_fdSoc != -1) {
         if (sock_utils::close_connection(this->m_fdSoc) == -1) {
             std::cout << RED << "ERROR: sock_utils::close_connection failed: ";
@@ -81,6 +75,7 @@ void TunConnection::HandleEvent()
         auto found = m_dest_to_socket.find(dest);
         if (found != m_dest_to_socket.end()) {
             fdSocUdp = found->second;
+            socks5_udp::send_packet_to_socket(fdSocUdp, m_buffer, nRead);
         }
         else {
             fdSocUdp = sock_utils::create_udp_socket(&m_udpBindAddr, m_udpBindPort);
@@ -91,8 +86,8 @@ void TunConnection::HandleEvent()
             std::cout << YELLOW << "UDP Socket: ";
             sock_utils::print_socket_info(fdSocUdp);
             std::cout << RESET;
+            socks5_udp::send_packet_to_socket(fdSocUdp, m_buffer, nRead);
         }
-        socks5_udp::send_packet_to_socket(fdSocUdp, m_buffer, nRead);
     }
     else if ( ipv4::is_tcp(m_buffer) )
     {
@@ -116,11 +111,7 @@ void TunConnection::HandleEvent()
             struct sockaddr_in dest;
             ::memset(&dest, 0, sizeof(dest));
             socks5_tcp::tcp_client_connection_request(fdSoc, iph->daddr, 80);
-
-            //socks5_tcp::server_three_way_handshake(tcph->th_sport, fdTun, nRead, (const char *)m_buffer);
-            //socks5_tcp::recv_conn_req(fdTun, nRead, (char *)m_buffer);
-            //socks5_tcp::send_sync_to_tun(fdTun, m_buffer, nRead);  //server (fdSoc) -> sync, ack
-            socks5_tcp::send_sync_ack_to_tun(fdTun, m_buffer, nRead);
+            m_pPollMgr->Add(fdSoc, new SocketTcpConnection(m_pTun, fdSoc, m_pUdpConnMap, m_buffer, nRead));
             return;
         }
 
