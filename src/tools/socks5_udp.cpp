@@ -157,7 +157,7 @@ bool socks5_udp::send_packet_to_tun(int fdTun,
     ip.ihl      = 5;
     ip.version  = 4;
     ip.tos      = 0x0;
-    ip.frag_off = htons(0x4000); // Don't fragment
+    ip.frag_off = ::htons(0x4000); // Don't fragment
     ip.id       = 0;
     ip.ttl      = 64; // hops
     ip.tot_len  = ::htons(pack_size);
