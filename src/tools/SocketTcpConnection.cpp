@@ -17,9 +17,6 @@ SocketTcpConnection::SocketTcpConnection(Tun *pTun, int fdSoc, Ipv4ConnMap *pUdp
     m_tun_ip = m_pTun->GetIPAddr();
     const int fdTun = m_pTun->GetFd();
 
-    //socks5_tcp::server_three_way_handshake(tcph->th_sport, fdTun, nRead, (const char *)m_buffer);
-    //socks5_tcp::recv_conn_req(fdTun, nRead, (char *)m_buffer);
-    //socks5_tcp::send_sync_to_tun(fdTun, m_buffer, nRead);  //server (fdSoc) -> sync, ack
     socks5_tcp::send_sync_ack_to_tun(fdTun, pBuffer, nRead);
 
     struct iphdr *iph = (struct iphdr *)pBuffer;
@@ -40,19 +37,20 @@ SocketTcpConnection::~SocketTcpConnection()
 void SocketTcpConnection::HandleEvent()
 {
     const int nRead = sock_utils::read_data(m_fdSoc, m_buffer, sizeof(m_buffer), 0);
+
     if (nRead == 0) {
         return; // TODO
     }
     ipv4::print_data((unsigned char *)m_buffer, nRead);
     // TODO create TCP packet (this is payload info)
-    //const int fdTun = m_pTun->GetFd();
     // TODO - unfinished
-    /*
+
+    const int fdTun = m_pTun->GetFd();
+    socks5_tcp::send_ack_to_tun(fdTun, m_tun_ip, m_addr, m_raw_port);
     socks5_tcp::send_packet_to_tun(fdTun,
                                    m_buffer, nRead,
                                    m_tun_ip,
                                    m_addr,
                                    m_raw_port,
                                   *m_pUdpConnMap);
-                                  */
 }

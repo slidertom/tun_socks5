@@ -132,7 +132,7 @@ int sock_utils::create_tcp_socket_client(const char *name, std::uint16_t port) n
     // The option is enabled on a per-application basis by using the setsockopt() subroutine to set the socket option SO_KEEPALIVE to 1.
     // There is no option available to enable keepalive system-wide.
     // Many programs, such as telnetd, provide a way to enable or disable the TCP keepalive via command line arguments or configuration options.
-    /*
+
     constexpr int keepalive = 1;
     ::setsockopt(sock_fd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
 
@@ -146,6 +146,6 @@ int sock_utils::create_tcp_socket_client(const char *name, std::uint16_t port) n
     // TCP_KEEPCNT: The number of unanswered probes required to force closure of the socket
     constexpr int keepcnt = 8;
     ::setsockopt(sock_fd, SOL_TCP, TCP_KEEPCNT, &keepcnt, sizeof(keepcnt));
-    */
+
     return sock_fd;
 }

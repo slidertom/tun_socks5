@@ -270,25 +270,6 @@ int socks5_tcp::tcp_client_connection_request(int fdSoc,
 	return -1;
 }
 
-static uint16_t inet_csum(const void *buf, size_t hdr_len)
-{
-    unsigned long sum = 0;
-    const uint16_t *ip1;
-
-    ip1 = (const uint16_t *)buf;
-    while (hdr_len > 1) {
-        sum += *ip1++;
-        if (sum & 0x80000000)
-          sum = (sum & 0xFFFF) + (sum >> 16);
-        hdr_len -= 2;
-    }
-
-    while (sum >> 16)
-    sum = (sum & 0xFFFF) + (sum >> 16);
-
-    return(~sum);
-}
-
 struct pseudoheader {
 	uint32_t src;
 	uint32_t dst;
@@ -327,10 +308,10 @@ tcp_checksum(struct iphdr *iphdr, struct tcphdr *tcphdr)
 	struct pseudoheader *phdr;
 
 	phdr = (struct pseudoheader *)buf;
-	phdr->src = iphdr->saddr;
-	phdr->dst = iphdr->daddr;
-	phdr->zero = 0;
-	phdr->proto = IPPROTO_TCP;
+	phdr->src    = iphdr->saddr;
+	phdr->dst    = iphdr->daddr;
+	phdr->zero   = 0;
+	phdr->proto  = IPPROTO_TCP;
 	phdr->length = htons(sizeof(struct tcphdr));
 
 	memcpy(&buf[sizeof(struct pseudoheader)], tcphdr, sizeof(struct tcphdr));
@@ -338,404 +319,6 @@ tcp_checksum(struct iphdr *iphdr, struct tcphdr *tcphdr)
 	return checksum(buf, sizeof(struct pseudoheader) + sizeof(struct tcphdr));
 }
 
-bool socks5_tcp::send_packet_to_tun(int fdTun,
-                                    const std::byte *buffer, size_t size,
-                                    uint32_t tun_ip,
-                                    uint32_t saddr,
-                                    uint16_t dport,
-                                    const Ipv4ConnMap &map_dst_to_conn) noexcept
-{
-    size_t payload_size = size;
-
-    /*
-    struct in_addr inaddr;
-    inaddr.s_addr = daddr;
-    //std::cout << "Destination address: " << ::inet_ntoa(inaddr);
-    //std::cout << ":" << dport << std::endl;
-
-    const uint16_t sport = ipv4::ipv4_conn_map_get_src_port_by_dst(map_dst_to_conn, inaddr.s_addr, dport);
-    if (sport == 0) {
-        std::cout << RED << "ERROR: ipv4_conn_map_get_src_port_by_dst failed to find src port.";
-        std::cout << RESET << std::endl;
-        return false;
-    }
-    */
-
-    constexpr unsigned short iphdrlen  = sizeof(struct iphdr);
-    constexpr unsigned short tcphdrlen = sizeof(struct tcphdr);
-    const size_t pack_size = iphdrlen + tcphdrlen + payload_size;
-
-    struct iphdr ip;
-    ip.ihl      = 5;
-    ip.version  = 4;
-    ip.tos      = 0x0;
-    ip.frag_off = htons(0x4000); // Don't fragment
-    ip.id       = 0;
-    ip.ttl      = 64; // hops
-    ip.tot_len  = ::htons(pack_size);
-    ip.protocol = IPPROTO_TCP;
-    ip.saddr    = saddr;
-    ip.daddr    = tun_ip;
-
-    struct tcphdr tcp;
-    tcp.th_sport = htons(80);
-    tcp.th_dport = dport;
-    tcp.th_seq   = htonl(1);
-    tcp.th_ack   = 0;
-    tcp.th_off   = 5;
-    //tcp.syn = 1;
-    //tcp.ack = 0;
-    //tcp.th_win = htons(32767);
-    tcp.check   = 0; // Done by kernel
-    tcp.urg_ptr = 0;
-
-    std::byte *out_data = (std::byte *)::malloc(pack_size);
-
-    // The checksum should be calculated over the entire header with the checksum
-    // field set to 0, so that's what we do
-    ip.check    = 0;
-    ip.check    = ::inet_csum(&ip, sizeof(struct iphdr));
-
-    tcp.check   = tcp_checksum(&ip, &tcp);
-
-    ::memcpy(out_data, &ip, iphdrlen);
-    out_data += iphdrlen;
-
-    ::memcpy(out_data, &tcp, tcphdrlen);
-    out_data += tcphdrlen;
-
-    ::memcpy(out_data, buffer, payload_size);
-
-    out_data -= (iphdrlen + tcphdrlen);
-
-    //std::cout << "SOC => TUN ";
-    //ipv4::print_ip_header((unsigned char *)out_data, pack_size);
-    //ipv4::print_udp_packet(out_data, pack_size);
-
-    const int nRet = ::write(fdTun, out_data, pack_size);
-
-	::free(out_data);
-
-	return nRet != -1;
-}
-
-
-unsigned short compute_tcp_checksum(struct iphdr *pIph, unsigned short *ipPayload) {
-
-    register unsigned long sum = 0;
-
-    unsigned short tcpLen = ntohs(pIph->tot_len) - (pIph->ihl<<2);
-
-    struct tcphdr *tcphdrp = (struct tcphdr*)(ipPayload);
-
-    //add the pseudo header
-
-    //the source ip
-
-    sum += (pIph->saddr>>16)&0xFFFF;
-
-    sum += (pIph->saddr)&0xFFFF;
-
-    //the dest ip
-
-    sum += (pIph->daddr>>16)&0xFFFF;
-
-    sum += (pIph->daddr)&0xFFFF;
-
-    //protocol and reserved: 6
-
-    sum += htons(IPPROTO_TCP);
-
-    //the length
-
-    sum += htons(tcpLen);
-
-
-
-    //add the IP payload
-
-    //initialize checksum to 0
-
-    tcphdrp->check = 0;
-
-    while (tcpLen > 1) {
-
-        sum += * ipPayload++;
-
-        tcpLen -= 2;
-
-    }
-
-    //if any bytes left, pad the bytes and add
-
-    if(tcpLen > 0) {
-
-        //printf("+++++++++++padding, %dn", tcpLen);
-
-        sum += ((*ipPayload)&htons(0xFF00));
-
-    }
-
-      //Fold 32-bit sum to 16 bits: add carrier to result
-
-      while (sum>>16) {
-
-          sum = (sum & 0xffff) + (sum >> 16);
-
-      }
-
-      sum = ~sum;
-
-    //set computation result
-
-    //tcphdrp->check = (unsigned short)sum;
-      return (unsigned short)sum;
-
-}
-
-bool socks5_tcp::send_sync_to_tun(int fdTun, std::byte *buffer, size_t size) noexcept
-{
-    struct iphdr *iph = (struct iphdr *)buffer;
-    const unsigned short iphdrlen = iph->ihl*4;
-    struct tcphdr *tcph = (struct tcphdr *)(buffer + iphdrlen);
-
-    //uint32_t total_len = sizeof(struct iphdr )+sizeof(struct tcphdr);
-    //iph->tot_len;
-
-    /*
-    struct in_addr daddr;
-    daddr.s_addr = iph->daddr;
-    struct in_addr saddr;
-    saddr.s_addr = iph->saddr;
-    std::cout << "Dst address: " << ::inet_ntoa(daddr) << "\n";
-    std::cout << "Src address: " << ::inet_ntoa(saddr) << "\n";
-    */
-
-    std::swap(iph->saddr, iph->daddr);
-    iph->check = 0;
-    iph->check = ::inet_csum(iph, sizeof(struct iphdr)); // Ip checksum
-
-    // TCP Header
-    tcph->seq = ::htonl(0);
-    tcph->ack = 1;
-    //tcph->ack_seq = htonl(1); // ack number -> 1
-    tcph->syn = 1;
-    tcph->rst = 0;
-    tcph->urg = 0;
-    tcph->urg_ptr = 0;
-    tcph->psh = 0;
-    tcph->rst = 0;
-    tcph->fin     = 0;
-    //tcph->doff = sizeof(struct tcphdr) / 4;		//Size of tcp header
-    tcph->th_flags |= TH_SYN;
-    tcph->th_flags |= TH_ACK;
-    std::swap(tcph->source, tcph->dest);
-
-    tcph->check = compute_tcp_checksum(iph,(unsigned short*)tcph);
-    //tcph->check = 0; // Done by kernel
-
-    int nRet = ::write(fdTun, buffer, size);
-	if (nRet == -1) {
-        std::cout << "ERROR\n";
-	}
-	return nRet != -1;
-}
-
-//bool send_ack_to_tun(int fdTun, std::byte *buffer, size_t size) noexcept;
-
-struct tcpheader
-{
-	unsigned short int srcport; //16-bit source port
-	unsigned short int destport; //16-bit destination port
-	unsigned int seqnum; //32-bit sequence number
-	unsigned int acknum; //32-bit acknowledgement number
-	unsigned short int offset:4, //4-bit data offset or header length
-		reserved:6, //6-bit reserved section
-		//6-bit flags
-		urg:1,
-		ack:1,
-		psh:1,
-		rst:1,
-		syn:1,
-		fin:1;
-	unsigned short int window;//16-bit receive window for flow control
-	unsigned short int checksum;//6-bit checksum
-	unsigned short int pointer;//16-bit urgent data pointer
-	unsigned int option;//32-bit Options
-};
-// https://github.com/phaiyen0493/TCP_3_way_handshake_simulation/blob/main/server.c
-void socks5_tcp::server_three_way_handshake(uint16_t client_port, int socket_fd, int rec_bytes, const char *buffer)
-{
-	// The server responds to the request by creating a connection granted TCP segment.
-	struct tcpheader *TCP_segment = (struct tcpheader *)buffer;
-	int header_length;
-	if (rec_bytes > 0)
-	{
-		TCP_segment->srcport  = ::htons(80);
-		TCP_segment->destport = ::ntohs(client_port);
-		srand(time(NULL));
-		TCP_segment->acknum  = TCP_segment->seqnum + 1;   // Assign acknowledgement number equal to initial client sequence number + 1
-		TCP_segment->seqnum  = rand()% (int) (pow(2,32)); // Assign a random initial server sequence number
-		header_length = (16+16+32+32+4+6+6+16+16+16+32)/32;
-		//TCP_segment->offset = header_length; //24 bytes = 192 bits, 192/32=6
-		TCP_segment->reserved = 0;
-		TCP_segment->urg = 0;
-		TCP_segment->ack = 1; //Set ACK bit to 1
-		TCP_segment->psh = 0;
-		TCP_segment->rst = 0;
-		TCP_segment->syn = 1; //Set SYN bit to 1
-		TCP_segment->fin      = 0;
-		TCP_segment->window   = 0;
-		TCP_segment->checksum = 0;
-		TCP_segment->pointer  = 0;
-		TCP_segment->option   = 0;
-
-		//Calculate checksum
-		unsigned short int checksum_arr[12];
-		unsigned int sum=0, checksum, wrap;
-
-		memcpy(checksum_arr, TCP_segment, 24); //Copying 24 bytes
-
-		for (int i=0;i<12;i++) {
-			sum = sum + checksum_arr[i];
-		}
-		wrap = sum >> 16;// Wrap around once
-		sum = sum & 0x0000FFFF;
-		sum = wrap + sum;
-		wrap = sum >> 16;// Wrap around once more
-		sum = sum & 0x0000FFFF;
-		checksum = wrap + sum;
-		//printf("\nSum Value: 0x%04X\n", checksum);  /* XOR the sum for checksum */
-		//printf("\nChecksum Value: 0x%04X\n", (0xFFFF^checksum));
-		TCP_segment->checksum = checksum;
-
-		int length = send(socket_fd, TCP_segment, 24, 0);
-		if (length < 0) {
-			printf("Fail to send SYN ACK signal to client\n");
-		}
-		else
-		{
-			//Print the values to console
-			printf("\nServer has sent SYN ACK signal to client succesfully\n");
-			printf("TCP source port: %d\n", TCP_segment->srcport);
-			printf("TCP destination port: %d\n", TCP_segment->destport);
-			printf("TCP sequence number: %d\n", TCP_segment->seqnum);
-			printf("TCP ack number: %d\n", TCP_segment->acknum);
-			printf("TCP offset/ header length: %d\n", TCP_segment->offset);
-			printf("TCP URG bit value: %d\n", TCP_segment->urg);
-			printf("TCP ACK bit value: %d\n", TCP_segment->ack);
-			printf("TCP PSH bit value: %d\n", TCP_segment->psh);
-			printf("TCP RST bit value: %d\n", TCP_segment->rst);
-			printf("TCP SYN bit value: %d\n", TCP_segment->syn);
-			printf("TCP FIN bit value: %d\n", TCP_segment->fin);
-			printf("TCP check sum in decimal: %d and hexadecimal: %x\n", TCP_segment->checksum, TCP_segment->checksum);
-		}
-	}
-
-	memset(TCP_segment, 0, sizeof(struct tcpheader));	//reallocate memory
-	//Once server receives ACK signal from client, TCP connection is created
-	rec_bytes = recv(socket_fd, TCP_segment, sizeof(struct tcpheader), 0);
-	if (rec_bytes > 0)
-	{
-		printf("\nServer received ACK signal from client. TCP connection is now created\n");
-		//Print the values to console
-		printf("TCP source port: %d\n", TCP_segment->srcport);
-		printf("TCP destination port: %d\n", TCP_segment->destport);
-		printf("TCP sequence number: %d\n", TCP_segment->seqnum);
-		printf("TCP ack number: %d\n", TCP_segment->acknum);
-		printf("TCP offset/ header length: %d\n", TCP_segment->offset);
-		printf("TCP URG bit value: %d\n", TCP_segment->urg);
-		printf("TCP ACK bit value: %d\n", TCP_segment->ack);
-		printf("TCP PSH bit value: %d\n", TCP_segment->psh);
-		printf("TCP RST bit value: %d\n", TCP_segment->rst);
-		printf("TCP SYN bit value: %d\n", TCP_segment->syn);
-		printf("TCP FIN bit value: %d\n", TCP_segment->fin);
-		printf("TCP check sum in decimal: %d and hexadecimal: %x\n", TCP_segment->checksum, TCP_segment->checksum);
-	}
-}
-
-//initialize TCP header struct
-struct tcp_hdr
-{
-    short int src;
-    short int des;
-    int seq;
-    int ack;
-    unsigned char tcph_reserved:4, tcph_offset:4;
-    short int hdr_flags;
-    short int rec;
-     int cksum;
-    short int ptr;
-    int opt;
-};
-
-//bit flags for hdr_flags
-enum {
-	SYN = 0x01,
-	ACK = 0x02,
-	FIN = 0x04,
-};
-// https://github.com/caseycarroll/TCP-3-Way-Handshake-Demonstration/blob/master/server.c
-// The server responds to the request by creating a connection granted TCP segment.
-void print_tcp_seg(struct tcp_hdr *tcp_seg)
-{
-	FILE *fp;
-
-	fp = fopen("server_output.txt", "a+");
-
-	/*Print out tcp connection request */
-	printf("source port:\t\t%hu\n", tcp_seg->src);
-	printf("destination:\t\t%hu\n", tcp_seg->des);
-	printf("sequence:\t\t%d\n", tcp_seg->seq);
-	printf("acknowledgement:\t%d\n", tcp_seg->ack);
-
-	if(tcp_seg->hdr_flags & SYN)
-	{
-		printf("hdr_flags: SYN = 1\n");
-	} if (tcp_seg->hdr_flags & ACK)
-	{
-		printf("hdr_flags: ACK = 1\n");
-	} if (tcp_seg->hdr_flags & FIN)
-	{
-		printf("hdr_flags: FIN = 1\n");
-	}
-
-	printf("hdr flags:\t\t0x0%x\n", tcp_seg->hdr_flags);
-	printf("receive window:\t\t%hu\n", tcp_seg->rec);
-	printf("checksum:\t\t0x%X\n", (0xFFFF^tcp_seg->cksum));
-	printf("data pointer:\t\t%hu\n", tcp_seg->ptr);
-	printf("options:\t\t%d\n", tcp_seg->opt);
-	printf("-----------\n\n");
-
-	  /* Print to file */
-	fprintf(fp, "source port:\t\t%hu\n", tcp_seg->src);
-  	fprintf(fp,"destination:\t\t%hu\n", tcp_seg->des);
-  	fprintf(fp,"sequence:\t\t%d\n", tcp_seg->seq);
-  	fprintf(fp,"acknowledgement:\t%d\n", tcp_seg->ack);
-
-  	if(tcp_seg->hdr_flags & SYN)
-  	{
-    	fprintf(fp,"hdr_flags: SYN = 1\n");
-  	} if (tcp_seg->hdr_flags & ACK)
-  	{
-    	fprintf(fp,"hdr_flags: ACK = 1\n");
-  	} if (tcp_seg->hdr_flags & FIN)
-  	{
-    	fprintf(fp,"hdr_flags: FIN = 1\n");
-  	}
-
-  	fprintf(fp,"hdr flag actual value:\t\t0x0%x\n", tcp_seg->hdr_flags);
-  	fprintf(fp,"receive window:\t\t%hu\n", tcp_seg->rec);
-  	fprintf(fp,"checksum:\t\t0x%04X\n", (0xFFFF^tcp_seg->cksum));
-  	fprintf(fp,"data pointer:\t\t%hu\n", tcp_seg->ptr);
-  	fprintf(fp,"options:\t\t%d\n", tcp_seg->opt);
-  	fprintf(fp,"-----------\n\n");
-
-  	fclose(fp);
-
-	return;
-}
-#define SERVER_SEQ 200
 unsigned int compute_cksum(unsigned short int * cksum_arr)
 {
   unsigned int i,sum=0, cksum;
@@ -755,68 +338,13 @@ unsigned int compute_cksum(unsigned short int * cksum_arr)
   printf("Checksum Value: 0x%04X\n", (0xFFFF^cksum)); //print result
   return (cksum);
 }
-int socks5_tcp::recv_conn_req(int accept_sock, int num_data_recv, char *buffer)
+
+// Generic checksum calculation function
+unsigned short csum(unsigned short *ptr,int nbytes)
 {
-	int num_sent, temp_portno;
-	struct tcp_hdr tcp_seg;
-	unsigned short int cksum_arr[12];
-
-	memcpy(&tcp_seg, buffer, sizeof(tcp_seg));
-
-	printf("-----CONNECTION REQUEST SEGMENT FROM CLIENT-----\n");
-	print_tcp_seg(&tcp_seg);
-
-	//set SYN bit to and ACK bit to 1
-	tcp_seg.hdr_flags = (SYN | ACK);
-
-	//Assign an initial server sequence number with an acknowledgement number equal to initial client sequence number + 1
-	tcp_seg.ack = tcp_seg.seq + 1; //101
-	tcp_seg.seq = SERVER_SEQ; //200
-
-	temp_portno = tcp_seg.src;
-	tcp_seg.src = tcp_seg.des;
-	tcp_seg.des = temp_portno; //change the source and destination to go back to client
-
-	/* compute checksum */
-	memcpy(cksum_arr, &tcp_seg, 24); //Copying 24 bytes
-  	tcp_seg.cksum = compute_cksum(cksum_arr); //compute checksum
-  	printf("0x%04X\n", (0xFFFF^tcp_seg.cksum));
-
-  	printf("-----CONNECTION ACCEPTED SEGMENT TO CLIENT-----\n");
-  	print_tcp_seg(&tcp_seg);
-
-	/* send connection granted segment to client */
-	memcpy(buffer, &tcp_seg, sizeof tcp_seg);	//copy segment to char buffer
-	num_sent = write(accept_sock, buffer, 255); //send buffer to client
-	if (num_sent < 0)
-	{
-	  printf("error writing to socket...\n");
-	  exit(1);
-	}
-	return 0;
-}
-
-// https://github.com/5G-Measurement/raw-tcp/blob/7402b098f1fd53078c4a8fa512459f601893684a/packet.h
-#define MTU 1440
-struct trans_packet_state {
-    unsigned int seq;
-    unsigned int ack;
-};
-
-struct packet_info {
-    char dest_ip[128];
-    char source_ip[128];
-    uint16_t dest_port;
-    uint16_t source_port;
-    struct trans_packet_state state;
-};
-/*
-    Generic checksum calculation function
-*/
-unsigned short csum(unsigned short *ptr,int nbytes) {
-    register long sum;
+    long sum;
     unsigned short oddbyte;
-    register short answer;
+    short answer;
 
     sum=0;
     while(nbytes>1) {
@@ -835,145 +363,120 @@ unsigned short csum(unsigned short *ptr,int nbytes) {
 
     return(answer);
 }
-/*
-    96 bit (12 bytes) pseudo header needed for tcp header checksum calculation
-*/
 
-// https://stackoverflow.com/questions/1295921/setting-the-maximum-segment-size-in-the-tcp-header
-struct pseudo_header {
-    u_int32_t source_address;
-    u_int32_t dest_address;
-    u_int8_t placeholder;
-    u_int8_t protocol;
-    u_int16_t tcp_length;
-};
+#define PACKET_WINDOW_SIZE 256
+#define PACKET_TTL 128
 
-struct tcp_option_mss {
-    uint8_t kind; /* 2 */
-    uint8_t len; /* 4 */
-    uint16_t mss;
-} __attribute__((packed));
-
-int send_packet(struct packet_info* packetinfo, int fdSoc, uint16_t window,
-                uint16_t id, uint32_t seg)
+bool socks5_tcp::send_packet_to_tun(int fdTun,
+                                    const std::byte *buffer, size_t payload_size,
+                                    uint32_t tun_ip,
+                                    uint32_t saddr,
+                                    uint16_t dport,
+                                    const Ipv4ConnMap &map_dst_to_conn) noexcept
 {
-    char datagram[MTU]; //Datagram to represent the packet TODO
+    constexpr unsigned short iphdrlen  = sizeof(struct iphdr);
+    constexpr unsigned short tcphdrlen = sizeof(struct tcphdr);
+    const size_t pack_size = iphdrlen + tcphdrlen + payload_size;
+	std::byte *out_data = (std::byte *)::malloc(pack_size);
+	::memset(out_data, 0, pack_size);
+	struct iphdr *iphdr   = (struct iphdr*)out_data;
+	struct tcphdr *tcphdr = (struct tcphdr*)&out_data[sizeof(struct iphdr)];
 
-    //zero out the packet buffer
-    ::memset(datagram, 0, MTU);
-    struct iphdr *iph = (struct iphdr *)datagram; // IP header
-    constexpr unsigned short iphdrlen = sizeof(struct iphdr);
-    //constexpr unsigned short ip_len2 = sizeof(ip);
-    struct tcphdr *tcph = (struct tcphdr *)(datagram + iphdrlen); // TCP header
+    iphdr->ihl      = 5;
+    iphdr->version  = 4;
+    iphdr->tos      = 0x0;
+    iphdr->frag_off = htons(0x4000); // Don't fragment
+    iphdr->id       = 0;
+    iphdr->ttl      = PACKET_TTL; // hops
+    iphdr->tot_len  = ::htons(pack_size);
+    iphdr->protocol = IPPROTO_TCP;
+    iphdr->saddr    = saddr;
+    iphdr->daddr    = tun_ip;
+    iphdr->check    = 0;
 
-    int pack_size = iphdrlen + sizeof(struct tcphdr);
+    tcphdr->th_sport = htons(80);
+    tcphdr->th_dport = dport;
+    tcphdr->th_seq   = htonl(1);
+    tcphdr->doff    = 0x5;
+	tcphdr->window  = ::htons(PACKET_WINDOW_SIZE);
+    //tcphdr->th_ack   = 0;
+    //tcphdr->th_off   = 5;
+    //tcphdr->syn = 1;
+    //tcphdr->ack = 0;
+    //tcphdr->th_win = htons(32767);
+    tcphdr->check   = 0; // Done by kernel
+    tcphdr->urg_ptr = 0;
 
-    // Fill in the IP Header
-    iph->ihl      = 5;
-    iph->version  = 4;
-    iph->tos      = 0x0;
-    iph->tot_len  = ::htons(pack_size);
-    iph->id       = id;
-    iph->frag_off = 0;
-    iph->ttl      = 255;
-    iph->protocol = IPPROTO_TCP;
-    iph->saddr    = inet_addr(packetinfo->source_ip);    //Spoof the source ip address
-    iph->daddr    = inet_addr(packetinfo->dest_ip);
+    tcphdr->check = tcp_checksum(iphdr, tcphdr);
+    iphdr->check  = checksum(iphdr, sizeof(struct iphdr));
 
-    // TCP Header
-    tcph->source  = packetinfo->source_port;
-    tcph->dest    = packetinfo->dest_port;
-    tcph->seq     = seg;
-    tcph->doff    = sizeof(struct tcphdr)/4; //tcph->doff    = 5;  // tcp header size
-    tcph->fin     = 0;
-    tcph->rst     = 0;
-    tcph->psh     = 0;
-    tcph->urg     = 0;
-    tcph->res1    = 0;
-    tcph->res2    = 0;
-    tcph->window  = window;
-    tcph->check   = 0; //leave checksum 0 now, filled later by pseudo header
-    tcph->urg_ptr = 0;
+    ::memcpy(out_data + (iphdrlen + tcphdrlen), buffer, payload_size);
 
-    //if (flag == REPLY_SYN_ACK) {
-    tcph->seq = 0;
-    tcph->ack_seq = htonl(1);
-    tcph->syn = 1;
-    tcph->ack = 1;
-    tcph->th_flags |= TH_SYN;
-    tcph->th_flags |= TH_ACK;
-    //
+    ipv4::print_ip_header((std::byte *)out_data, pack_size);
+    const int nRet = ::write(fdTun, out_data, pack_size);
 
-    tcph->check = 0;
-    tcph->check = compute_tcp_checksum(iph,(unsigned short*)tcph);
+	::free(out_data);
 
-    iph->check    = 0;  //Set to 0 before calculating checksum
-    iph->check    = ::inet_csum(iph, sizeof(struct iphdr)); // Ip checksum
-
-    int ret = ::write(fdSoc, datagram, pack_size);
-
-    if (ret > 0) {
-        return 1;
-    }
-    else {
-        return -1;
-    }
+	return nRet != -1;
 }
 
+// 96 bit (12 bytes) pseudo header needed for tcp header checksum calculation
+// https://stackoverflow.com/questions/1295921/setting-the-maximum-segment-size-in-the-tcp-header
 
-#define PACKET_TTL 128
-#define PACKET_WINDOW_SIZE 256
-char *generate_tcp(struct iphdr *src_iphdr, struct tcphdr *src_tcphdr, int rst)
+enum class ETCP_RESPONSE_TYPE
+{
+    SYN_ACK = 0,
+    RST = 1,
+    ACK = 2,
+};
+
+char *generate_tcp(struct iphdr *src_iphdr, struct tcphdr *src_tcphdr, ETCP_RESPONSE_TYPE type)
 {
     #define PACKET_LEN (sizeof(struct iphdr) + sizeof(struct tcphdr))
-	unsigned char *buf;
-	struct iphdr *iphdr;
-	struct tcphdr *tcphdr;
-	char ipstr[INET_ADDRSTRLEN];
+	unsigned char *buf = (unsigned char *)::malloc(PACKET_LEN);
+	::memset(buf, 0, PACKET_LEN);
+	struct iphdr *iphdr   = (struct iphdr*)buf;
+	struct tcphdr *tcphdr = (struct tcphdr*)&buf[sizeof(struct iphdr)];
 
-	buf = (unsigned char *)malloc(PACKET_LEN);
-	if (buf == NULL)
-		return NULL;
-
-	memset(buf, 0, PACKET_LEN);
-	iphdr  = (struct iphdr*)buf;
-	tcphdr = (struct tcphdr*)&buf[sizeof(struct iphdr)];
-
-	iphdr->version = 0x4;
-	iphdr->ihl = 0x5;
-	iphdr->tos = 0;
-	iphdr->tot_len = htons(PACKET_LEN);
-	iphdr->id = 0;
+	iphdr->version  = 0x4;
+	iphdr->ihl      = 0x5;
+	iphdr->tos      = 0;
+	iphdr->tot_len  = ::htons(PACKET_LEN);
+	iphdr->id       = 0;
 	iphdr->frag_off = htons(IP_DF);
 	iphdr->ttl      = PACKET_TTL;
 	iphdr->protocol = IPPROTO_TCP;
-	iphdr->check = 0;
-	iphdr->saddr = src_iphdr->daddr;
-	iphdr->daddr = src_iphdr->saddr;
+	iphdr->check    = 0;
+	iphdr->saddr    = src_iphdr->daddr;
+	iphdr->daddr    = src_iphdr->saddr;
 
 	tcphdr->source  = src_tcphdr->dest;
 	tcphdr->dest    = src_tcphdr->source;
 	tcphdr->doff    = 0x5;
-	tcphdr->window  = htons(PACKET_WINDOW_SIZE);
+	tcphdr->window  = ::htons(PACKET_WINDOW_SIZE);
 	tcphdr->check   = 0;
 	tcphdr->urg_ptr = 0;
 
-	if (rst) {
+	// TODO: switch/case
+	if (type == ETCP_RESPONSE_TYPE::RST) {
 		tcphdr->rst = 1;
+	}
+	else if (type == ETCP_RESPONSE_TYPE::ACK) {
+        tcphdr->syn = 0;
+        tcphdr->ack = 1;
+        tcphdr->ack_seq = ::htonl(::htonl(src_tcphdr->seq) + 1);
 	}
 	else {
 		tcphdr->syn = 1;
 		tcphdr->ack = 1;
-		tcphdr->ack_seq = htonl(htonl(src_tcphdr->seq) + 1);
-		tcphdr->seq = src_tcphdr->seq;
+		tcphdr->ack_seq = ::htonl(::htonl(src_tcphdr->seq) + 1);
+		tcphdr->seq     = src_tcphdr->seq;
 	}
 
 	tcphdr->check = tcp_checksum(iphdr, tcphdr);
 	iphdr->check  = checksum(iphdr, sizeof(struct iphdr));
 
-	inet_ntop(AF_INET, &iphdr->daddr, ipstr, INET_ADDRSTRLEN);
-	printf("SYN from %s on port %d\n", ipstr, htons(tcphdr->source));
-
+    ipv4::print_ip_header((std::byte *)buf, PACKET_LEN);
 	return (char *)buf;
 }
 
@@ -983,24 +486,8 @@ void socks5_tcp::send_sync_ack_to_tun(int fdTun, std::byte *buffer, size_t size)
     struct iphdr *iph = (struct iphdr *)buffer;
     const unsigned short iphdrlen = iph->ihl*4;
     struct tcphdr *tcph = (struct tcphdr *)(buffer + iphdrlen);
-    /*
-    struct in_addr daddr;
-    daddr.s_addr = iph->daddr;
-    struct in_addr saddr;
-    saddr.s_addr = iph->saddr;
 
-    // Server replies SYN + ACK
-    struct packet_info packet;
-    packet.state.seq = 1;
-    packet.state.ack = 1;
-    strcpy(packet.dest_ip,   inet_ntoa(saddr));
-    strcpy(packet.source_ip, inet_ntoa(daddr));
-
-    packet.dest_port   = tcph->source;
-    packet.source_port = tcph->dest;
-    send_packet(&packet, fdTun, tcph->window, iph->id, htonl(ntohl(tcph->seq) +1));
-    */
-    char *buf = generate_tcp(iph, tcph, 0);
+    char *buf = generate_tcp(iph, tcph, ETCP_RESPONSE_TYPE::SYN_ACK);
     int ret = ::write(fdTun, buf, PACKET_LEN);
     if (ret > 0) {
 
@@ -1008,7 +495,53 @@ void socks5_tcp::send_sync_ack_to_tun(int fdTun, std::byte *buffer, size_t size)
     else {
         std::cout << "ERROR" << std::endl;
     }
-    free(buf);
+    ::free(buf);
 }
 
+void socks5_tcp::send_ack_to_tun(int fdTun, uint32_t tun_ip, uint32_t saddr, uint16_t dport) noexcept
+{
+    // TODO: ACK
+    // https://createnetech.tistory.com/25
+	unsigned char *buf = (unsigned char *)::malloc(PACKET_LEN);
+	::memset(buf, 0, PACKET_LEN);
+	struct iphdr *iphdr   = (struct iphdr*)buf;
+	struct tcphdr *tcphdr = (struct tcphdr*)&buf[sizeof(struct iphdr)];
+
+	iphdr->version  = 0x4;
+	iphdr->ihl      = 0x5;
+	iphdr->tos      = 0;
+	iphdr->tot_len  = ::htons(PACKET_LEN);
+	iphdr->id       = 0;
+	iphdr->frag_off = htons(IP_DF);
+	iphdr->ttl      = PACKET_TTL;
+	iphdr->protocol = IPPROTO_TCP;
+	iphdr->check    = 0;
+	iphdr->saddr    = saddr;
+	iphdr->daddr    = tun_ip;
+
+	tcphdr->source  = htons(80);
+	tcphdr->dest    = dport;
+	tcphdr->doff    = 0x5;
+	tcphdr->window  = ::htons(PACKET_WINDOW_SIZE);
+	tcphdr->check   = 0;
+	tcphdr->urg_ptr = 0;
+
+    tcphdr->syn = 0;
+    tcphdr->ack = 1;
+    tcphdr->ack_seq = htonl(1);;
+
+	tcphdr->check = tcp_checksum(iphdr, tcphdr);
+	iphdr->check  = checksum(iphdr, sizeof(struct iphdr));
+
+    ipv4::print_ip_header((std::byte *)buf, PACKET_LEN);
+
+    int ret = ::write(fdTun, buf, PACKET_LEN);
+    if (ret > 0) {
+
+    }
+    else {
+        std::cout << "ERROR" << std::endl;
+    }
+    ::free(buf);
+}
 
